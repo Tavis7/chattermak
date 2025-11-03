@@ -46,11 +46,12 @@ def read_file(filename):
         text = file.read()
     return text
 
-def generate_transitions(text, *args, debug_null_char=None):
+def generate_transitions(text, *args, debug_null_char=None, enable_debug_output=False):
     if len(args) > 0:
         raise Exception(f"Too many positional arguments: {args}")
     transitions = {}
-    print(f"generating transitions")
+    if enable_debug_output == True:
+        print(f"generating transitions")
     for i in range(len(text) - 1):
         current_char = ord(text[i])
         next_char = ord(text[i+1])
@@ -78,33 +79,63 @@ def generate_transitions(text, *args, debug_null_char=None):
     transitions[0] = null_weights
 
     term_weights = {-1: 1}
-    if ord('\n') in transitions:
-        # todo Use this for null_weights
-        print(f"Replacing '\\n' ({transitions[ord('\n')]}) with {term_weights}")
+    if enable_debug_output == True:
+        if ord('\n') in transitions:
+            # todo Use this for null_weights
+            print(f"Replacing '\\n' ({transitions[ord('\n')]}) with {term_weights}")
 
     transitions[ord('\n')] = term_weights
-    print("done")
+    if enable_debug_output == True:
+        print("done")
 
     return transitions
+
+def tokens_to_string(tokens):
+    # todo For now tokens are just ord(char)
+    char_list = []
+    for token in tokens:
+        if (token >= 0):
+            char_list.append(chr(token))
+    return "".join(char_list)
+
+def usage(program_name):
+    print(f"Usage: {program_name} [--line-count <count>] [--enable-debug-output]")
 
 def main():
     print(sys.argv)
     loop_count = 1
+    enable_debug_output = False;
     filename = "README.md"
 
-    if len(sys.argv) > 1:
-        loop_count = int(sys.argv[1])
+    program_name = sys.argv[0]
+    arg_index = 1;
+    while (arg_index < len(sys.argv)):
+        #print(f"Parsing arg {arg_index} (= {sys.argv[arg_index]})")
+        match (sys.argv[arg_index]):
+            case "--lines":
+                arg_index += 1
+                loop_count = int(sys.argv[arg_index])
+            case "--enable-debug":
+                enable_debug_output = True
+            case _:
+                usage(program_name)
+                exit(1)
+        arg_index += 1
 
     print("Hello from chattermak!")
+    print()
     readme = read_file(filename);
 
     transitions = generate_transitions(readme)
-    print(transitions)
-    print()
+    if enable_debug_output == True:
+        print(transitions)
+        print()
 
     for i in range(loop_count):
         generated = markov_generate(transitions, 0)
-        print(generated)
+        if enable_debug_output == True:
+            print(generated)
+        print(tokens_to_string(generated))
 
 
 if __name__ == "__main__":
