@@ -90,14 +90,18 @@ def generate_transitions(text, *args, debug_null_char=None):
 def main():
     print(sys.argv)
     loop_count = 1
+    filename = "README.md"
+
     if len(sys.argv) > 1:
         loop_count = int(sys.argv[1])
+
     print("Hello from chattermak!")
-    readme = read_file("README.md");
-    #print(readme)
+    readme = read_file(filename);
+
     transitions = generate_transitions(readme)
     print(transitions)
     print()
+
     for i in range(loop_count):
         generated = markov_generate(transitions, 0)
         print(generated)

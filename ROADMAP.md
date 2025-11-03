@@ -2,8 +2,10 @@
 
 ## Markov Generator
 
-- [ ] Calculate transition probabilities for each token
+- [x] Calculate transition probabilities for each token
 - [ ] Select next token from most recent tokens and transition probabilities
+    - [x] Single token state
+    - [ ] Multi token state
 - [ ] Bias transition probabilities for recency, generated text vs user input, etc.
 
 ## Chat Interface
@@ -26,5 +28,4 @@ Improvements:
 ## Tokenizer
 
 - [ ] Include end of messages, end of line, etc. tokens
-    - [ ] Ascii only for now
 - [ ] Generate tokenizer parameters from text
