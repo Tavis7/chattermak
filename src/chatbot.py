@@ -69,7 +69,7 @@ def markov_generate_token(transitions, state):
         token = -2
     return token
 
-def markov_generate(transitions, state, *, max_generated_tokens=2):
+def markov_generate(transitions, state, *, max_generated_tokens=100):
     output = []
     token = 0
     count = 0
@@ -82,7 +82,7 @@ def markov_generate(transitions, state, *, max_generated_tokens=2):
     return output
 
 
-def generate_transitions(tokens, *, state_size=1,
+def generate_transitions(tokens, *, state_size=1, null_token=0,
                          debug_null_token=None, enable_debug_output=False):
     transitions = {}
     for token_index in range(len(tokens) - 1):
@@ -98,13 +98,23 @@ def generate_transitions(tokens, *, state_size=1,
             weight = 0
             if current_token in weights:
                 weight = weights[current_token]
-            weights[current_token] = weight + 1
+            weights[next_token] = weight + 1
             #print(weights)
 
             parent[current_token] = child
             #print(parent)
             parent = child[0]
 
+    null_transitions = {}
+    for key in transitions:
+        null_transitions[key] = 1
+        print(f"null_transitions[{key}]: {null_transitions[key]}")
+        print(f"null_transitions: {null_transitions}")
+    if null_token in transitions:
+        print("Warning: replacing {null_token} ({transitions[null_token]}) with {null_transitions}")
+    transitions[null_token] = ({}, null_transitions)
+
+    print(transitions)
     return transitions
     #transitions_ = {}
 

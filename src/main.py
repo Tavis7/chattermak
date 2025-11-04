@@ -55,7 +55,7 @@ def main():
 
     chatbot.debug_print_weights(transitions)
     for i in range(loop_count):
-        generated = chatbot.markov_generate(transitions, chatbot.string_to_tokens("abc"))
+        generated = chatbot.markov_generate(transitions, [0])#chatbot.string_to_tokens("abc"))
         if enable_debug_output == True:
             print(generated)
         print(f"-> |{chatbot.tokens_to_string(generated)}|")
