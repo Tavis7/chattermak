@@ -7,6 +7,7 @@
     - [x] Single token state
     - [ ] Multi token state
 - [ ] Bias transition probabilities for recency, generated text vs user input, etc.
+- [ ] Dynamically adjust state size based on average depth of transitions
 
 ## Chat Interface
 
