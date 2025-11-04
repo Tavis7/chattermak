@@ -28,7 +28,7 @@ def main():
         match (sys.argv[arg_index]):
             case "--input-file":
                 arg_index += 1
-                filename = int(sys.argv[arg_index])
+                filename = sys.argv[arg_index]
             case "--line-count":
                 arg_index += 1
                 loop_count = int(sys.argv[arg_index])
@@ -39,6 +39,7 @@ def main():
                 enable_debug_output = True
             case "--help":
                 usage(program_name)
+                exit(0)
             case _:
                 usage(program_name, sys.argv[arg_index])
                 exit(1)

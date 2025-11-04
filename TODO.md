@@ -1,8 +1,10 @@
 # TODO list
 
-- [ ] Generate using multi-token state
+- [ ] Chat interface
+
 - [ ] Tokenizer tests
 
+- [x] Generate using multi-token state
 - [x] Implement Markov generator for single token state
     - Initially using hardcoded or random weights
 - [x] Calculate transition probabilities from text
