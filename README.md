@@ -12,3 +12,9 @@ inspired by [tsoding](https://www.youtube.com/watch?v=6dCqR9p0yWY)
 Activate venv with `source .venv/bin/activate`
 
 Run with `uv run src/main.py` or `./build.sh`
+
+# Future
+
+[TODO](TODO.md)
+
+[Roadmap](ROADMAP.md)
