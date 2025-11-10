@@ -11,12 +11,13 @@ def usage(program_name, arg=None):
     if arg != None:
         print(f"Unrecognized argument: '{arg}'")
 
-    print(f"Usage: {program_name} [--help] [--input-file <filename>] [--line-count <count>] [--state-size <size>] [--enable-debug-output]")
+    print(f"Usage: {program_name} [--help] [--input-file <filename>] [--chat | --line-count <count>] [--state-size <size>] [--enable-debug-output]")
+    print(f"    Note: '--chat' is short for '--line-count 0'")
 
 
 def main():
     #print(sys.argv)
-    loop_count = 1
+    loop_count = 0
     enable_debug_output = False;
     filename = "README.md"
     state_size = 2
@@ -32,6 +33,8 @@ def main():
             case "--line-count":
                 arg_index += 1
                 loop_count = int(sys.argv[arg_index])
+            case "--chat":
+                loop_count = 0
             case "--state-size":
                 arg_index += 1
                 state_size = int(sys.argv[arg_index])
@@ -48,8 +51,6 @@ def main():
     print("Hello from chattermak!")
     print()
     readme = read_file(filename);
-    #readme = "abcdefghijklmnoponmlkjihgfedcba\n"
-    #readme = "abcdefg\n"
 
     readme_tokens = chatbot.string_to_tokens(readme)
     readme_string = chatbot.tokens_to_string(readme_tokens)
@@ -64,11 +65,29 @@ def main():
         print()
         chatbot.debug_print_weights(transitions)
 
-    for i in range(loop_count):
-        generated = chatbot.markov_generate(transitions)#chatbot.string_to_tokens("abc"))
-        if enable_debug_output == True:
-            print(generated)
-        print(f"-> |{chatbot.tokens_to_string(generated)}|")
+    if loop_count == 0:
+        history = chatbot.string_to_tokens("\n");
+        while True:
+            generated = chatbot.markov_generate(transitions, history)
+            history.extend(generated)
+            print(f"-> {chatbot.tokens_to_string(generated)}")
+            try:
+                user_input = input("> ")
+            except EOFError:
+                print()
+                break
+
+            if enable_debug_output == True:
+                print(f"Got user input: '{user_input}'")
+
+            history.extend(chatbot.string_to_tokens(user_input))
+            history.extend(chatbot.string_to_tokens("\n"))
+    else:
+        for i in range(loop_count):
+            generated = chatbot.markov_generate(transitions)
+            if enable_debug_output == True:
+                print(generated)
+            print(f"-> |{chatbot.tokens_to_string(generated)}|")
 
 
 if __name__ == "__main__":

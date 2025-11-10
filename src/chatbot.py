@@ -57,7 +57,8 @@ def markov_generate_token(transitions, state):
         token = -2
     return token
 
-def markov_generate(transitions, state = [0], *, max_generated_tokens=100, terminator=ord("\n")):
+def markov_generate(transitions, state = [0], *,
+                    max_generated_tokens=100, terminator=ord("\n")):
     state = state.copy()
     output = []
     token = 0
