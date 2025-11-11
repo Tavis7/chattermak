@@ -1,11 +1,11 @@
 import random
 
-simple_transitions = {
-    0:  ({}, {1: 1, 2: 1, 3: 1}),
-    1:  ({}, {1: 10, 2: 3, 3: 5, 4: 1}),
-    2:  ({}, {1: 7, 2: 5, 3: 1, 4: 1}),
-    3:  ({}, {1: 3, 2: 3, 3: 9, 4: 1, 5: 1}),
-    4:  ({}, {-1: 1})   # Terminate
+example_transitions = {
+    0:  {"history": {}, "probabilities": {1: 1, 2: 1, 3: 1}},
+    1:  {"history": {}, "probabilities": {1: 10, 2: 3, 3: 5, 4: 1}},
+    2:  {"history": {}, "probabilities": {1: 7, 2: 5, 3: 1, 4: 1}},
+    3:  {"history": {}, "probabilities": {1: 3, 2: 3, 3: 9, 4: 1, 5: 1}},
+    4:  {"history": {}, "probabilities": {-1: 1}}   # Terminate
 }
 
 
@@ -27,12 +27,26 @@ def choose_token(weights):
 
 def debug_print_weights(transitions, so_far=""):
     if so_far == "":
+        #print("raw")
+        #print(transitions)
         print("Printing weights")
     for key in transitions:
         at = chr(key) + so_far
-        print(f"{at}: {transitions[key][1]}")
-        debug_print_weights(transitions[key][0], at)
+        print(f"{at} ({key}): {transitions[key]['probabilities']}")
+        debug_print_weights(transitions[key]["history"], at)
     if so_far == "":
+        print("Done printing weights")
+        print()
+
+def debug_print_weights_raw(transitions, level=0):
+    if level == 0:
+        #print("raw")
+        #print(transitions)
+        print("Printing weights")
+    for key in transitions:
+        print(f"{4 * level * ' '}{key}: {transitions[key]['probabilities']}")
+        debug_print_weights_raw(transitions[key]["history"], level + 1)
+    if level == 0:
         print("Done printing weights")
         print()
 
@@ -46,60 +60,86 @@ def markov_generate_token(transitions, state):
             debug_depth += 1
             state_index -= 1
             previous_token = state[state_index]
-            if previous_token in parent[current_token][0]:
-                parent = parent[current_token][0]
+            if previous_token in parent[current_token]["history"]:
+                parent = parent[current_token]["history"]
                 current_token = previous_token
             else:
                 break
 
-        token = choose_token(parent[current_token][1])
+        token = choose_token(parent[current_token]["probabilities"])
     else:
         token = -2
     return token
 
-def markov_generate(transitions, state = [0], *,
+def markov_generate(generator, *,
                     max_generated_tokens=100, terminator=ord("\n")):
-    state = state.copy()
     output = []
     token = 0
     count = 0
+    history = generator.history.copy()
+    # print(f"Generating from {tokens_to_string(history)}")
     while token >= 0 and count < max_generated_tokens and token != terminator:
         count += 1
-        token = markov_generate_token(transitions, state)
-        if token != terminator:
-            state.append(token)
+        token = markov_generate_token(generator.transitions, history)
+        if token == terminator:
+            break
+        else:
+            if token < 0:
+                generator.last_error_token = token
+                print(f"Encountered error token: {token}")
+                break;
+            history.append(token)
             output.append(token)
     return output
 
 
-def generate_transitions(tokens, *, state_size=1, null_token=0,
-                         enable_debug_output=False):
-    transitions = {}
-    for token_index in range(len(tokens) - 1):
+class TokenGenerator:
+    def __init__(self):
+        self.history = [0]
+        self.transitions = {}
+        self.last_error_token = None
+        self.state_size = 1
+        self.delimiter = string_to_tokens("\n")[0]
+
+
+def append_message(generator, message, generated=False):
+    start_from = len(generator.history) - 1
+    generator.history.extend(message)
+    generator.history.append(generator.delimiter)
+    if generated == False:
+        calculate_transitions(generator, generator.history, start_from = start_from)
+
+
+def calculate_transitions(generator, tokens, *,
+                          null_token=0, enable_debug_output=False,
+                          start_from=0):
+    transitions = generator.transitions
+    if null_token in transitions:
+        del transitions[null_token]
+    for token_index in range(start_from, len(tokens) - 1):
         parent = transitions
         next_token = tokens[token_index + 1]
-        for state_index in range(min(state_size, token_index + 1)):
+        for state_index in range(min(generator.state_size, token_index + 1)):
             current_token = tokens[token_index - state_index]
-            child = ({}, {})
+            child = {"history": {}, "probabilities": {}}
             if current_token in parent:
                 child = parent[current_token]
-            weights = child[1]
+            weights = child["probabilities"]
             weight = 0
             if current_token in weights:
                 weight = weights[current_token]
             weights[next_token] = weight + 1
 
             parent[current_token] = child
-            parent = child[0]
+            parent = child["history"]
 
     null_transitions = {}
     for key in transitions:
         null_transitions[key] = 1
-        # print(f"null_transitions[{key}]: {null_transitions[key]}")
-        # print(f"null_transitions: {null_transitions}")
     if null_token in transitions:
-        print("Warning: replacing {null_token} ({transitions[null_token]}) with {null_transitions}")
-    transitions[null_token] = ({}, null_transitions)
+        print(f"Warning: replacing {null_token} ({transitions[null_token]}) with {null_transitions}")
+    transitions[null_token] = {"history": {}, "probabilities": null_transitions}
+    #debug_print_weights_raw(transitions)
 
     return transitions
 

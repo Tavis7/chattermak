@@ -19,8 +19,9 @@ def main():
     #print(sys.argv)
     loop_count = 0
     enable_debug_output = False;
-    filename = "README.md"
+    filename = None
     state_size = 2
+    use_simple_transitions = False;
 
     program_name = sys.argv[0]
     arg_index = 1;
@@ -40,6 +41,8 @@ def main():
                 state_size = int(sys.argv[arg_index])
             case "--enable-debug-output":
                 enable_debug_output = True
+            case "--enable-debug-transitions":
+                use_simple_transitions = True
             case "--help":
                 usage(program_name)
                 exit(0)
@@ -48,46 +51,64 @@ def main():
                 exit(1)
         arg_index += 1
 
+    if loop_count > 0 and filename == None:
+        filename = "README.md"
+
     print("Hello from chattermak!")
     print()
-    readme = read_file(filename);
 
-    readme_tokens = chatbot.string_to_tokens(readme)
-    readme_string = chatbot.tokens_to_string(readme_tokens)
-    if readme_string != readme:
-        print(readme_tokens)
-        print(readme_string)
+    initialization = "";
+    if filename != None and len(filename) > 0:
+        initialization = read_file(filename);
+
+    initialization_tokens = chatbot.string_to_tokens(initialization)
+    initialization_string = chatbot.tokens_to_string(initialization_tokens)
+    if initialization_string != initialization:
+        print(initialization_tokens)
+        print(initialization_string)
         raise Exception("string_to_tokens failed to rount-trip")
 
-    transitions = chatbot.generate_transitions(readme_tokens, state_size = state_size)
+    generator = chatbot.TokenGenerator()
+    generator.state_size = state_size;
+    chatbot.calculate_transitions(generator, initialization_tokens)
+    if use_simple_transitions:
+        transitions = chatbot.example_transitions
+
     if enable_debug_output == True:
         print(transitions)
         print()
         chatbot.debug_print_weights(transitions)
 
     if loop_count == 0:
-        history = chatbot.string_to_tokens("\n");
+        chatbot.append_message(generator, chatbot.string_to_tokens("\n"));
         while True:
-            generated = chatbot.markov_generate(transitions, history)
-            history.extend(generated)
+            generated = chatbot.markov_generate(generator)
             print(f"-> {chatbot.tokens_to_string(generated)}")
+            chatbot.append_message(generator, generated, True)
             try:
                 user_input = input("> ")
             except EOFError:
                 print()
+                print("end of input: quitting")
+                break
+            except KeyboardInterrupt:
+                print()
+                print("keyboard interrupt: quitting")
                 break
 
             if enable_debug_output == True:
                 print(f"Got user input: '{user_input}'")
 
-            history.extend(chatbot.string_to_tokens(user_input))
-            history.extend(chatbot.string_to_tokens("\n"))
+            chatbot.append_message(generator, chatbot.string_to_tokens(user_input))
     else:
+        if use_simple_transitions == True:
+            enable_debug_output = True
         for i in range(loop_count):
-            generated = chatbot.markov_generate(transitions)
+            generated = chatbot.markov_generate(generator)
             if enable_debug_output == True:
                 print(generated)
-            print(f"-> |{chatbot.tokens_to_string(generated)}|")
+            if use_simple_transitions != True:
+                print(f"-> |{chatbot.tokens_to_string(generated)}|")
 
 
 if __name__ == "__main__":
