@@ -3,9 +3,9 @@
 ## Markov Generator
 
 - [x] Calculate transition probabilities for each token
-- [ ] Select next token from most recent tokens and transition probabilities
+- [x] Select next token from most recent tokens and transition probabilities
     - [x] Single token state
-    - [ ] Multi token state
+    - [x] Multi token state
 - [ ] Bias transition probabilities for recency, generated text vs user input, etc.
 - [ ] Dynamically adjust state size based on average depth of transitions
 

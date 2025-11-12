@@ -1,5 +1,15 @@
 import sys
 import chatbot
+import re
+try:
+    import readline
+except ModuleNotFoundError as e:
+    print("Failed to import readline. Some line editing features may not be available.")
+    readlinee = None
+
+def init_readline():
+    if readline != None:
+        readline.set_auto_history(False)
 
 def read_file(filename):
     with open(filename) as file:
@@ -79,12 +89,17 @@ def main():
         print()
         chatbot.debug_print_weights(transitions)
 
+    init_readline()
+
     if loop_count == 0:
         chatbot.append_message(generator, chatbot.string_to_tokens("\n"));
+        should_generate_message = True
         while True:
-            generated = chatbot.markov_generate(generator)
-            print(f"-> {chatbot.tokens_to_string(generated)}")
-            chatbot.append_message(generator, generated, True)
+            if should_generate_message:
+                generated = chatbot.markov_generate(generator)
+                print(f"-> {chatbot.tokens_to_string(generated)}")
+                chatbot.append_message(generator, generated, True)
+
             try:
                 user_input = input("> ")
             except EOFError:
@@ -99,7 +114,65 @@ def main():
             if enable_debug_output == True:
                 print(f"Got user input: '{user_input}'")
 
-            chatbot.append_message(generator, chatbot.string_to_tokens(user_input))
+            if user_input[0] == '/':
+                print(f"Got command: {user_input}")
+                should_generate_message = False
+                got = ["",user_input.strip()]
+                user_input = None
+                command_tokens = []
+                while len(got[1]) > 0:
+                    special_chars = r'\\ \t\'"'
+                    doublequote_string_regex = "".join([
+                        r'"',
+                        r'(?:[^"]|\\.)*',
+                        r'"'
+                    ])
+                    singlequote_string_regex = "".join([
+                        r"'",
+                        r"(?:[^']|\\.)*",
+                        r"'"
+                    ])
+                    regex_string = "".join([
+                        r"^[ \t]*((?:[^",
+                        special_chars,
+                        r"]|\\.|",
+                        doublequote_string_regex,
+                        r"|",
+                        singlequote_string_regex,
+                        ")*)(.*)$"
+                    ])
+                    got = re.findall(regex_string, got[1])[0]
+                    if len(got[0]) < 1:
+                        print(f"Syntax error: unexpected or unterminated [{got[1][0]}]")
+                        print(f"got {command_tokens} + {got[1]}")
+                        break
+                    command_tokens.append(got[0])
+                    # todo remove all unescaped quotes and substitute backslash
+                    # escapes from command_tokens
+
+                match command_tokens[0]:
+                    case "/help":
+                        if len(command_tokens) > 1:
+                            print("Error: no arguments permitted") # todo
+                        else:
+                            print("/help, /say [msg], /quit")
+                    case "/quit":
+                        if len(command_tokens) > 1:
+                            print("Error: no arguments permitted") # todo
+                        else:
+                            break
+                    case "/say":
+                        if len(command_tokens) < 2:
+                            print("Error: at least one argument required")
+                        else:
+                            user_input = " ".join(command_tokens[1:])
+
+                if enable_debug_output:
+                    print(command_tokens)
+            if user_input != None:
+                chatbot.append_message(generator, chatbot.string_to_tokens(user_input))
+                should_generate_message = True
+
     else:
         if use_simple_transitions == True:
             enable_debug_output = True
