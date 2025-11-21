@@ -72,7 +72,9 @@ def markov_generate_token(transitions, state):
     return token
 
 def markov_generate(generator, *,
-                    max_generated_tokens=100, terminator=ord("\n")):
+                    max_generated_tokens=100, terminator=None):
+    if terminator == None:
+        terminator = generator.delimiter
     output = []
     token = 0
     count = 0

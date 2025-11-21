@@ -130,6 +130,9 @@ def main():
                     # todo remove all unescaped quotes and substitute backslash
                     # escapes from command_tokens
 
+                if enable_debug_output:
+                    print(command_tokens)
+
                 match command_tokens[0]:
                     case "/help":
                         if len(command_tokens) > 1:
@@ -146,9 +149,20 @@ def main():
                             print("Error: at least one argument required")
                         else:
                             user_input = " ".join(command_tokens[1:])
+                    case "/transitions":
+                        if len(command_tokens) > 1:
+                            print("Error: no arguments permitted") # todo
+                        else:
+                            chatbot.debug_print_weights(generator.transitions)
+                    case "/history":
+                        if len(command_tokens) > 1:
+                            print("Error: no arguments permitted") # todo
+                        else:
+                            print("History:")
+                            print(f"{chatbot.tokens_to_string(generator.history)}")
+                    case _:
+                        print(f"Unknown command: {command_tokens[0]}")
 
-                if enable_debug_output:
-                    print(command_tokens)
             if user_input != None:
                 chatbot.append_message(generator, chatbot.string_to_tokens(user_input))
                 should_generate_message = True

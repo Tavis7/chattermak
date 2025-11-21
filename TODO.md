@@ -2,11 +2,13 @@
 
 - [ ] readline
 - [ ] Slash commands
-    - [ ] Print transition weights
+    - [x] Print transition weights
+        - /transitions
     - [x] /help
     - [ ] /help [command]
     - [x] /quit
-    - [ ] /history [n]
+    - [x] /history
+    - [ ] last n lines of /history
 - [ ] Tokenizer tests
 - [ ] Refactor
 - [ ] save chat history
