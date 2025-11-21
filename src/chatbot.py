@@ -76,7 +76,8 @@ def markov_generate(generator, *,
     output = []
     token = 0
     count = 0
-    history = generator.history.copy()
+    history = [generator.delimiter]
+    history.extend(generator.history)
     # print(f"Generating from {tokens_to_string(history)}")
     while token >= 0 and count < max_generated_tokens and token != terminator:
         count += 1
@@ -95,7 +96,7 @@ def markov_generate(generator, *,
 
 class TokenGenerator:
     def __init__(self):
-        self.history = [0]
+        self.history = []
         self.transitions = {}
         self.last_error_token = None
         self.state_size = 1
@@ -116,7 +117,10 @@ def calculate_transitions(generator, tokens, *,
     transitions = generator.transitions
     if null_token in transitions:
         del transitions[null_token]
+    # print(f"token count: {len(tokens)}")
+    # print(f"tokens: {tokens}")
     for token_index in range(start_from, len(tokens) - 1):
+        # print(f"{token_index} ({start_from} -> {len(tokens) - 1})")
         parent = transitions
         next_token = tokens[token_index + 1]
         for state_index in range(min(generator.state_size, token_index + 1)):

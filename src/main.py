@@ -83,23 +83,17 @@ def main():
     chatbot.calculate_transitions(generator, initialization_tokens)
     if use_simple_transitions:
         transitions = chatbot.example_transitions
-
-    if enable_debug_output == True:
-        print(transitions)
-        print()
-        chatbot.debug_print_weights(transitions)
+        if enable_debug_output == True:
+            print(transitions)
+            print()
+            chatbot.debug_print_weights(transitions)
 
     init_readline()
 
     if loop_count == 0:
-        chatbot.append_message(generator, chatbot.string_to_tokens("\n"));
+        chatbot.append_message(generator, chatbot.string_to_tokens(""));
         should_generate_message = True
         while True:
-            if should_generate_message:
-                generated = chatbot.markov_generate(generator)
-                print(f"-> {chatbot.tokens_to_string(generated)}")
-                chatbot.append_message(generator, generated, True)
-
             try:
                 user_input = input("> ")
             except EOFError:
@@ -114,32 +108,18 @@ def main():
             if enable_debug_output == True:
                 print(f"Got user input: '{user_input}'")
 
-            if user_input[0] == '/':
+            if len(user_input) > 0 and user_input[0] == '/':
                 print(f"Got command: {user_input}")
                 should_generate_message = False
                 got = ["",user_input.strip()]
                 user_input = None
                 command_tokens = []
                 while len(got[1]) > 0:
-                    special_chars = r'\\ \t\'"'
-                    doublequote_string_regex = "".join([
-                        r'"',
-                        r'(?:[^"]|\\.)*',
-                        r'"'
-                    ])
-                    singlequote_string_regex = "".join([
-                        r"'",
-                        r"(?:[^']|\\.)*",
-                        r"'"
-                    ])
+                    special_chars = r'\\ \t'
                     regex_string = "".join([
                         r"^[ \t]*((?:[^",
                         special_chars,
-                        r"]|\\.|",
-                        doublequote_string_regex,
-                        r"|",
-                        singlequote_string_regex,
-                        ")*)(.*)$"
+                        r"]|\\.)*)(.*)$"
                     ])
                     got = re.findall(regex_string, got[1])[0]
                     if len(got[0]) < 1:
@@ -172,6 +152,12 @@ def main():
             if user_input != None:
                 chatbot.append_message(generator, chatbot.string_to_tokens(user_input))
                 should_generate_message = True
+
+            if should_generate_message:
+                generated = chatbot.markov_generate(generator)
+                print(f"-> {chatbot.tokens_to_string(generated)}")
+                chatbot.append_message(generator, generated, True)
+
 
     else:
         if use_simple_transitions == True:
