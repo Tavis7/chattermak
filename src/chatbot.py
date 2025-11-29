@@ -1,14 +1,5 @@
 import random
 
-example_transitions = {
-    0:  {"history": {}, "probabilities": {1: 1, 2: 1, 3: 1}},
-    1:  {"history": {}, "probabilities": {1: 10, 2: 3, 3: 5, 4: 1}},
-    2:  {"history": {}, "probabilities": {1: 7, 2: 5, 3: 1, 4: 1}},
-    3:  {"history": {}, "probabilities": {1: 3, 2: 3, 3: 9, 4: 1, 5: 1}},
-    4:  {"history": {}, "probabilities": {-1: 1}}   # Terminate
-}
-
-
 def choose_token(weights):
     total = 0;
     for key in weights:
@@ -32,8 +23,8 @@ def debug_print_weights(transitions, so_far=""):
         print("Printing weights")
     for key in transitions:
         at = chr(key) + so_far
-        print(f"{at} ({key}): {transitions[key]['probabilities']}")
-        debug_print_weights(transitions[key]["history"], at)
+        print(f"{at} ({key}): {transitions[key].probabilities}")
+        debug_print_weights(transitions[key].history, at)
     if so_far == "":
         print("Done printing weights")
         print()
@@ -44,8 +35,8 @@ def debug_print_weights_raw(transitions, level=0):
         #print(transitions)
         print("Printing weights")
     for key in transitions:
-        print(f"{4 * level * ' '}{key}: {transitions[key]['probabilities']}")
-        debug_print_weights_raw(transitions[key]["history"], level + 1)
+        print(f"{4 * level * ' '}{key}: {transitions[key].probabilities}")
+        debug_print_weights_raw(transitions[key].history, level + 1)
     if level == 0:
         print("Done printing weights")
         print()
@@ -60,13 +51,13 @@ def markov_generate_token(transitions, state):
             debug_depth += 1
             state_index -= 1
             previous_token = state[state_index]
-            if previous_token in parent[current_token]["history"]:
-                parent = parent[current_token]["history"]
+            if previous_token in parent[current_token].history:
+                parent = parent[current_token].history
                 current_token = previous_token
             else:
                 break
 
-        token = choose_token(parent[current_token]["probabilities"])
+        token = choose_token(parent[current_token].probabilities)
     else:
         token = -2
     return token
@@ -100,9 +91,12 @@ class TokenGenerator:
     def __init__(self):
         self.history = []
         self.transitions = {}
+
         self.last_error_token = None
-        self.state_size = 1
         self.delimiter = string_to_tokens("\n")[0]
+
+        self.max_prefix_length = 1
+        self.prefix_decay = 0
 
 
 def append_message(generator, message, generated=False):
@@ -111,6 +105,13 @@ def append_message(generator, message, generated=False):
     generator.history.append(generator.delimiter)
     if generated == False:
         calculate_transitions(generator, generator.history, start_from = start_from)
+
+
+class PrefixNode:
+    def __init__(self, *, history = {}, probabilities = {}):
+        self.history = history.copy()
+        self.probabilities = probabilities.copy()
+        self.occurance_count = 0
 
 
 def calculate_transitions(generator, tokens, *,
@@ -125,26 +126,27 @@ def calculate_transitions(generator, tokens, *,
         # print(f"{token_index} ({start_from} -> {len(tokens) - 1})")
         parent = transitions
         next_token = tokens[token_index + 1]
-        for state_index in range(min(generator.state_size, token_index + 1)):
+        for state_index in range(min(generator.max_prefix_length, token_index + 1)):
             current_token = tokens[token_index - state_index]
-            child = {"history": {}, "probabilities": {}}
+            child = PrefixNode()
             if current_token in parent:
                 child = parent[current_token]
-            weights = child["probabilities"]
+            child.occurance_count += 1
+            weights = child.probabilities
             weight = 0
             if current_token in weights:
                 weight = weights[current_token]
             weights[next_token] = weight + 1
 
             parent[current_token] = child
-            parent = child["history"]
+            parent = child.history
 
     null_transitions = {}
     for key in transitions:
         null_transitions[key] = 1
     if null_token in transitions:
         print(f"Warning: replacing {null_token} ({transitions[null_token]}) with {null_transitions}")
-    transitions[null_token] = {"history": {}, "probabilities": null_transitions}
+    transitions[null_token] = PrefixNode(probabilities = null_transitions)
     #debug_print_weights_raw(transitions)
 
     return transitions
@@ -164,3 +166,12 @@ def string_to_tokens(string):
     for character in string:
         tokens.append(ord(character))
     return tokens
+
+
+example_transitions = {
+    0:  PrefixNode(probabilities={1: 1, 2: 1, 3: 1}),
+    1:  PrefixNode(probabilities={1: 10, 2: 3, 3: 5, 4: 1}),
+    2:  PrefixNode(probabilities={1: 7, 2: 5, 3: 1, 4: 1}),
+    3:  PrefixNode(probabilities={1: 3, 2: 3, 3: 9, 4: 1, 5: 1}),
+    4:  PrefixNode(probabilities={-1: 1})   # Terminate
+}

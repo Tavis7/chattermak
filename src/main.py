@@ -1,6 +1,9 @@
 import sys
-import chatbot
 import re
+
+import chatbot
+import commands
+
 try:
     import readline
 except ModuleNotFoundError as e:
@@ -21,7 +24,7 @@ def usage(program_name, arg=None):
     if arg != None:
         print(f"Unrecognized argument: '{arg}'")
 
-    print(f"Usage: {program_name} [--help] [--input-file <filename>] [--chat | --line-count <count>] [--state-size <size>] [--enable-debug-output]")
+    print(f"Usage: {program_name} [--help] [--input-file <filename>] [--chat | --line-count <count>] [--max-prefix-length <size>] [--prefix-decay <decay_rate>] [--enable-debug-output]")
     print(f"    Note: '--chat' is short for '--line-count 0'")
 
 
@@ -30,7 +33,8 @@ def main():
     loop_count = 0
     enable_debug_output = False;
     filename = None
-    state_size = 2
+    max_prefix_length = 2
+    prefix_decay = 1
     use_simple_transitions = False;
 
     program_name = sys.argv[0]
@@ -46,9 +50,12 @@ def main():
                 loop_count = int(sys.argv[arg_index])
             case "--chat":
                 loop_count = 0
-            case "--state-size":
+            case "--max-prefix-length":
                 arg_index += 1
-                state_size = int(sys.argv[arg_index])
+                max_prefix_length = int(sys.argv[arg_index])
+            case "--prefix-decay":
+                arg_index += 1
+                prefix_decay = int(sys.argv[arg_index])
             case "--enable-debug-output":
                 enable_debug_output = True
             case "--enable-debug-transitions":
@@ -65,6 +72,7 @@ def main():
         filename = "README.md"
 
     print("Hello from chattermak!")
+    print(f"Using state size: {max_prefix_length}, decay: {prefix_decay}")
     print()
 
     initialization = "";
@@ -79,7 +87,8 @@ def main():
         raise Exception("string_to_tokens failed to rount-trip")
 
     generator = chatbot.TokenGenerator()
-    generator.state_size = state_size;
+    generator.max_prefix_length = max_prefix_length;
+    generator.prefix_decay = prefix_decay;
     chatbot.calculate_transitions(generator, initialization_tokens)
     if use_simple_transitions:
         transitions = chatbot.example_transitions
@@ -93,9 +102,12 @@ def main():
     if loop_count == 0:
         chatbot.append_message(generator, chatbot.string_to_tokens(""));
         should_generate_message = True
+        user_prompt = "user"
+        chatter_prompt = "chattermak"
+        prompt_indicator = "> "
         while True:
             try:
-                user_input = input("> ")
+                user_input = input(f"{user_prompt}{prompt_indicator}")
             except EOFError:
                 print()
                 print("end of input: quitting")
@@ -109,59 +121,34 @@ def main():
                 print(f"Got user input: '{user_input}'")
 
             if len(user_input) > 0 and user_input[0] == '/':
-                print(f"Got command: {user_input}")
+                if enable_debug_output == True:
+                    print(f"Got command: {user_input}")
                 should_generate_message = False
-                got = ["",user_input.strip()]
+                command_parts = user_input.strip().split(maxsplit = 1)
+                command_parts.append("")
                 user_input = None
-                command_tokens = []
-                while len(got[1]) > 0:
-                    special_chars = r'\\ \t'
-                    regex_string = "".join([
-                        r"^[ \t]*((?:[^",
-                        special_chars,
-                        r"]|\\.)*)(.*)$"
-                    ])
-                    got = re.findall(regex_string, got[1])[0]
-                    if len(got[0]) < 1:
-                        print(f"Syntax error: unexpected or unterminated [{got[1][0]}]")
-                        print(f"got {command_tokens} + {got[1]}")
-                        break
-                    command_tokens.append(got[0])
-                    # todo remove all unescaped quotes and substitute backslash
-                    # escapes from command_tokens
 
                 if enable_debug_output:
-                    print(command_tokens)
+                    print(command_parts)
+                    print(command_parts[0])
 
-                match command_tokens[0]:
-                    case "/help":
-                        if len(command_tokens) > 1:
-                            print("Error: no arguments permitted") # todo
-                        else:
-                            print("/help, /say [msg], /quit")
-                    case "/quit":
-                        if len(command_tokens) > 1:
-                            print("Error: no arguments permitted") # todo
-                        else:
-                            break
-                    case "/say":
-                        if len(command_tokens) < 2:
-                            print("Error: at least one argument required")
-                        else:
-                            user_input = " ".join(command_tokens[1:])
-                    case "/transitions":
-                        if len(command_tokens) > 1:
-                            print("Error: no arguments permitted") # todo
-                        else:
-                            chatbot.debug_print_weights(generator.transitions)
-                    case "/history":
-                        if len(command_tokens) > 1:
-                            print("Error: no arguments permitted") # todo
-                        else:
-                            print("History:")
-                            print(f"{chatbot.tokens_to_string(generator.history)}")
+                action = commands.CommandAction.NOP
+                result = None
+                if command_parts[0] in commands.commands:
+                    action, result = commands.commands[command_parts[0]].func(command_parts[1], generator)
+                else:
+                    print(f"Unknown command: {command_parts[0]}")
+
+                match action:
+                    case commands.CommandAction.QUIT:
+                        break
+                    case commands.CommandAction.SAY:
+                        user_input = result
+                        print(f"[{user_prompt}] said: {user_input}")
+                    case commands.CommandAction.NOP:
+                        pass
                     case _:
-                        print(f"Unknown command: {command_tokens[0]}")
+                        print(f"ERROR: Unhandled command action")
 
             if user_input != None:
                 chatbot.append_message(generator, chatbot.string_to_tokens(user_input))
@@ -169,7 +156,7 @@ def main():
 
             if should_generate_message:
                 generated = chatbot.markov_generate(generator)
-                print(f"-> {chatbot.tokens_to_string(generated)}")
+                print(f"{chatter_prompt}{prompt_indicator}{chatbot.tokens_to_string(generated)}")
                 chatbot.append_message(generator, generated, True)
 
 

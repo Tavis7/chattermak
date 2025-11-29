@@ -1,6 +1,7 @@
 # TODO list
 
-- [ ] readline
+- [ ] dynamic prefix length / decay
+- [x] readline
 - [ ] Slash commands
     - [x] Print transition weights
         - /transitions
@@ -13,7 +14,6 @@
 - [ ] Refactor
 - [ ] save chat history
 - [ ] separate chat history into messages instead of single list of tokens
-- [ ] dynamic transition lookback length
 
 - [x] Basic chat interface
     - [x] Chat input loop
