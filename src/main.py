@@ -86,7 +86,7 @@ def main():
         print(initialization_string)
         raise Exception("string_to_tokens failed to rount-trip")
 
-    generator = chatbot.TokenGenerator()
+    generator = chatbot.TokenGenerator("chattermak")
     generator.max_prefix_length = max_prefix_length;
     generator.prefix_decay = prefix_decay;
     chatbot.calculate_transitions(generator, initialization_tokens)
@@ -100,14 +100,14 @@ def main():
     init_readline()
 
     if loop_count == 0:
-        chatbot.append_message(generator, chatbot.string_to_tokens(""));
+        message = chatbot.Message(chatbot.string_to_tokens(""), "initializer");
+        chatbot.append_message(generator, message);
         should_generate_message = True
-        user_prompt = "user"
-        chatter_prompt = "chattermak"
+        user_name = "user"
         prompt_indicator = "> "
         while True:
             try:
-                user_input = input(f"{user_prompt}{prompt_indicator}")
+                user_input = input(f"{user_name}{prompt_indicator}")
             except EOFError:
                 print()
                 print("end of input: quitting")
@@ -144,20 +144,22 @@ def main():
                         break
                     case commands.CommandAction.SAY:
                         user_input = result
-                        print(f"[{user_prompt}] said: {user_input}")
+                        print(f"[{user_name}] said: {user_input}")
                     case commands.CommandAction.NOP:
                         pass
                     case _:
                         print(f"ERROR: Unhandled command action")
 
             if user_input != None:
-                chatbot.append_message(generator, chatbot.string_to_tokens(user_input))
+                message = chatbot.Message(chatbot.string_to_tokens(user_input), user_name)
+                chatbot.append_message(generator, message)
                 should_generate_message = True
 
             if should_generate_message:
                 generated = chatbot.markov_generate(generator)
-                print(f"{chatter_prompt}{prompt_indicator}{chatbot.tokens_to_string(generated)}")
-                chatbot.append_message(generator, generated, True)
+                print(f"{generator.username}{prompt_indicator}{chatbot.tokens_to_string(generated)}")
+                message = chatbot.Message(generated, generator.username)
+                chatbot.append_message(generator, message, True)
 
 
     else:

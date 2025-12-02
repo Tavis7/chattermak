@@ -70,7 +70,7 @@ def markov_generate(generator, *,
     token = 0
     count = 0
     history = [generator.delimiter]
-    history.extend(generator.history)
+    history.extend(generator.prefix)
     # print(f"Generating from {tokens_to_string(history)}")
     while token >= 0 and count < max_generated_tokens and token != terminator:
         count += 1
@@ -88,8 +88,9 @@ def markov_generate(generator, *,
 
 
 class TokenGenerator:
-    def __init__(self):
+    def __init__(self, name):
         self.history = []
+        self.prefix = []
         self.transitions = {}
 
         self.last_error_token = None
@@ -98,13 +99,22 @@ class TokenGenerator:
         self.max_prefix_length = 1
         self.prefix_decay = 0
 
+        self.username = name
+
+
+class Message:
+    def __init__(self, message, user):
+        self.tokens = message
+        self.user = user
 
 def append_message(generator, message, generated=False):
-    start_from = len(generator.history) - 1
-    generator.history.extend(message)
-    generator.history.append(generator.delimiter)
+    start_from = len(generator.prefix) - 1
+    generator.prefix.extend(message.tokens)
+    generator.prefix.append(generator.delimiter)
     if generated == False:
-        calculate_transitions(generator, generator.history, start_from = start_from)
+        calculate_transitions(generator, generator.prefix, start_from = start_from)
+    generator.prefix = generator.prefix[-generator.max_prefix_length:]
+    generator.history.append(message)
 
 
 class PrefixNode:

@@ -1,6 +1,8 @@
 # TODO list
 
 - [ ] dynamic prefix length / decay
+- [ ] separate chat history into messages instead of single list of tokens
+- [ ] save chat history
 - [x] readline
 - [ ] Slash commands
     - [x] Print transition weights
@@ -12,8 +14,6 @@
     - [ ] last n lines of /history
 - [ ] Tokenizer tests
 - [ ] Refactor
-- [ ] save chat history
-- [ ] separate chat history into messages instead of single list of tokens
 
 - [x] Basic chat interface
     - [x] Chat input loop

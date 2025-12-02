@@ -44,7 +44,8 @@ def commandListHistory(args, generator):
         print("Error: no arguments permitted") # todo
     else:
         print("History:")
-        print(f"{chatbot.tokens_to_string(generator.history)}")
+        for message in generator.history:
+            print(f"{message.user}> {chatbot.tokens_to_string(message.tokens)}")
     return CommandAction.NOP, None
 
 def commandListTransitions(args, generator):

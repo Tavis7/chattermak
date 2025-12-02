@@ -11,8 +11,10 @@
 
 ## Chat Interface
 
-- [ ] Basic TUI line i/o
+- [x] Basic TUI line i/o
+- [x] Regenerate transition probabilities for each input
 - [ ] Regenerate transition probabilities for each output
+- [ ] Regenerate tokenizer parameters for each input
 - [ ] Regenerate tokenizer parameters for each output
 
 Improvements:
