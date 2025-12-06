@@ -91,17 +91,15 @@ def main():
     generator.prefix_decay = prefix_decay;
     chatbot.calculate_transitions(generator, initialization_tokens)
     if use_simple_transitions:
-        transitions = chatbot.example_transitions
+        generator = chatbot.example_generator
         if enable_debug_output == True:
-            print(transitions)
+            print(generator.transitions)
             print()
-            chatbot.debug_print_weights(transitions)
+            chatbot.debug_print_weights(generator.transitions)
 
     init_readline()
 
     if loop_count == 0:
-        message = chatbot.Message(chatbot.string_to_tokens(""), "initializer");
-        chatbot.append_message(generator, message);
         should_generate_message = True
         user_name = "user"
         prompt_indicator = "> "

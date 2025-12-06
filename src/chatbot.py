@@ -1,31 +1,62 @@
 import random
 
+class TokenGenerator:
+    def __init__(self, name):
+        self.history = []
+        self.prefix = []
+        self.transitions = PrefixNode()
+
+        self.last_error_token = None
+        self.delimiter = string_to_tokens("\n")[0]
+
+        self.max_prefix_length = 1
+        self.prefix_decay = 0
+
+        self.username = name
+
+
+class Message:
+    def __init__(self, message, user):
+        self.tokens = message
+        self.user = user
+
+
+class PrefixNode:
+    def __init__(self, *, history = {}, probabilities = {}):
+        self.history = history.copy()
+        self.probabilities = probabilities.copy()
+        self.occurance_count = 0
+
+
 def choose_token(weights):
     total = 0;
+    result = -1
     for key in weights:
         total += weights[key]
 
-    r = random.randrange(total);
-    at = 0
-    result = -1
-    for key in weights:
-        at += weights[key]
-        if at > r:
-            result = key
-            break;
+    if total > 0:
+        r = random.randrange(total);
+        at = 0
+        for key in weights:
+            at += weights[key]
+            if at > r:
+                result = key
+                break;
 
     return result
 
-def debug_print_weights(transitions, so_far=""):
-    if so_far == "":
+def debug_print_weights(transitions, so_far=([],[])):
+    if len(so_far[0]) == 0:
         #print("raw")
         #print(transitions)
         print("Printing weights")
-    for key in transitions:
-        at = chr(key) + so_far
-        print(f"{at} ({key}): {transitions[key].probabilities}")
-        debug_print_weights(transitions[key].history, at)
-    if so_far == "":
+    print(f"{so_far[1]} -> {transitions.probabilities}")
+    for key in transitions.history:
+        at = ([key],[chr(key)])
+        at[0].extend(so_far[0])
+        at[1].extend(so_far[1])
+        debug_print_weights(transitions.history[key], at)
+    if len(so_far[0]) == 0:
         print("Done printing weights")
         print()
 
@@ -43,27 +74,22 @@ def debug_print_weights_raw(transitions, level=0):
 
 def markov_generate_token(transitions, state):
     state_index = len(state) - 1
-    if state[state_index] in transitions:
-        parent = transitions
-        current_token = state[state_index]
-        debug_depth = 1
-        while state_index > 0:
-            debug_depth += 1
-            state_index -= 1
-            previous_token = state[state_index]
-            if previous_token in parent[current_token].history:
-                parent = parent[current_token].history
-                current_token = previous_token
-            else:
-                break
 
-        token = choose_token(parent[current_token].probabilities)
-    else:
-        token = -2
+    parent = transitions
+    debug_depth = 0
+    while state_index > 0:
+        debug_depth += 1
+        current_token = state[state_index]
+        if current_token in parent.history:
+            state_index -= 1
+            parent = parent.history[current_token]
+        else:
+            break
+
+    token = choose_token(parent.probabilities)
     return token
 
-def markov_generate(generator, *,
-                    max_generated_tokens=100, terminator=None):
+def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
     if terminator == None:
         terminator = generator.delimiter
     output = []
@@ -87,26 +113,6 @@ def markov_generate(generator, *,
     return output
 
 
-class TokenGenerator:
-    def __init__(self, name):
-        self.history = []
-        self.prefix = []
-        self.transitions = {}
-
-        self.last_error_token = None
-        self.delimiter = string_to_tokens("\n")[0]
-
-        self.max_prefix_length = 1
-        self.prefix_decay = 0
-
-        self.username = name
-
-
-class Message:
-    def __init__(self, message, user):
-        self.tokens = message
-        self.user = user
-
 def append_message(generator, message, generated=False):
     start_from = len(generator.prefix) - 1
     generator.prefix.extend(message.tokens)
@@ -117,49 +123,38 @@ def append_message(generator, message, generated=False):
     generator.history.append(message)
 
 
-class PrefixNode:
-    def __init__(self, *, history = {}, probabilities = {}):
-        self.history = history.copy()
-        self.probabilities = probabilities.copy()
-        self.occurance_count = 0
-
 
 def calculate_transitions(generator, tokens, *,
                           null_token=0, enable_debug_output=False,
                           start_from=0):
+    # todo fixme This throws away starting transitions
     transitions = generator.transitions
-    if null_token in transitions:
-        del transitions[null_token]
+    #print(f"calculate_transitions({generator}, {tokens}, *, {null_token}, {enable_debug_output}, {start_from})")
     # print(f"token count: {len(tokens)}")
-    # print(f"tokens: {tokens}")
-    for token_index in range(start_from, len(tokens) - 1):
+
+    # todo fixme currently broken
+    for token_index in range(start_from, len(tokens)):
+        debug_depth = 0
         # print(f"{token_index} ({start_from} -> {len(tokens) - 1})")
-        parent = transitions
-        next_token = tokens[token_index + 1]
-        for state_index in range(min(generator.max_prefix_length, token_index + 1)):
-            current_token = tokens[token_index - state_index]
-            child = PrefixNode()
-            if current_token in parent:
-                child = parent[current_token]
-            child.occurance_count += 1
-            weights = child.probabilities
+        node = transitions
+        next_token = tokens[token_index]
+
+        max_state_index = min(generator.max_prefix_length, token_index)
+        for state_index in range(max_state_index + 1):
             weight = 0
-            if current_token in weights:
-                weight = weights[current_token]
-            weights[next_token] = weight + 1
+            if next_token in node.probabilities:
+                weight = node.probabilities[next_token]
 
-            parent[current_token] = child
-            parent = child.history
+            node.probabilities[next_token] = weight + 1
 
-    null_transitions = {}
-    for key in transitions:
-        null_transitions[key] = 1
-    if null_token in transitions:
-        print(f"Warning: replacing {null_token} ({transitions[null_token]}) with {null_transitions}")
-    transitions[null_token] = PrefixNode(probabilities = null_transitions)
-    #debug_print_weights_raw(transitions)
+            if max_state_index > state_index:
+                current_token = tokens[token_index - state_index - 1]
 
-    return transitions
+                if current_token not in node.history:
+                    node.history[current_token] = PrefixNode()
+                node = node.history[current_token]
+
+    return
 
 
 def tokens_to_string(tokens):
@@ -178,10 +173,12 @@ def string_to_tokens(string):
     return tokens
 
 
-example_transitions = {
-    0:  PrefixNode(probabilities={1: 1, 2: 1, 3: 1}),
-    1:  PrefixNode(probabilities={1: 10, 2: 3, 3: 5, 4: 1}),
-    2:  PrefixNode(probabilities={1: 7, 2: 5, 3: 1, 4: 1}),
-    3:  PrefixNode(probabilities={1: 3, 2: 3, 3: 9, 4: 1, 5: 1}),
-    4:  PrefixNode(probabilities={-1: 1})   # Terminate
-}
+example_generator = TokenGenerator("Example generator")
+example_generator.transitions = PrefixNode(
+    history = {
+        1:  PrefixNode(probabilities={1: 10, 2: 3, 3: 5, 4: 1}),
+        2:  PrefixNode(probabilities={1: 7, 2: 5, 3: 1, 4: 1}),
+        3:  PrefixNode(probabilities={1: 3, 2: 3, 3: 9, 4: 1, 5: 1}),
+        4:  PrefixNode(probabilities={})   # Terminate
+    },
+    probabilities={1: 1, 2: 1, 3: 1})
