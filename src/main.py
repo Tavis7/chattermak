@@ -33,8 +33,8 @@ def main():
     loop_count = 0
     enable_debug_output = False;
     filename = None
-    max_prefix_length = 2
-    prefix_decay = 1
+    max_prefix_length = 6
+    prefix_decay = 3
     use_simple_transitions = False;
 
     program_name = sys.argv[0]

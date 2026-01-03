@@ -75,7 +75,7 @@ def debug_print_weights_raw(transitions, level=0):
         print("Done printing weights")
         print()
 
-def markov_generate_token(transitions, state, decay):
+def markov_generate_token(transitions, state, decay, *, debug_print_decay = False):
     state_index = len(state) - 1
 
     parent = transitions
@@ -91,7 +91,8 @@ def markov_generate_token(transitions, state, decay):
         else:
             break
 
-    print("decayed: ", decayed, ", depth: ", debug_depth)
+    if debug_print_decay:
+        print("decayed: ", decayed, ", depth: ", debug_depth)
 
     token = choose_token(parent.probabilities)
     return token
