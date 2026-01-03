@@ -1,13 +1,16 @@
 import random
 
 class TokenGenerator:
-    def __init__(self, name):
-        self.history = []
-        self.prefix = []
+    def __init__(self, name, *, delimiter=None):
+        if delimiter == None:
+            delimiter = string_to_tokens("\n")[0]
+
+        self.chatHistory = []
         self.transitions = PrefixNode()
+        self.delimiter = delimiter
+        self.prefix = [self.delimiter]
 
         self.last_error_token = None
-        self.delimiter = string_to_tokens("\n")[0]
 
         self.max_prefix_length = 1
         self.prefix_decay = 0
@@ -72,19 +75,23 @@ def debug_print_weights_raw(transitions, level=0):
         print("Done printing weights")
         print()
 
-def markov_generate_token(transitions, state):
+def markov_generate_token(transitions, state, decay):
     state_index = len(state) - 1
 
     parent = transitions
+    decayed = parent.occurance_count - decay
     debug_depth = 0
-    while state_index > 0:
-        debug_depth += 1
+    while state_index > 0 and decayed > 0:
         current_token = state[state_index]
         if current_token in parent.history:
+            debug_depth += 1
             state_index -= 1
             parent = parent.history[current_token]
+            decayed = min(parent.occurance_count, decayed) - decay
         else:
             break
+
+    print("decayed: ", decayed, ", depth: ", debug_depth)
 
     token = choose_token(parent.probabilities)
     return token
@@ -95,12 +102,11 @@ def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
     output = []
     token = 0
     count = 0
-    history = [generator.delimiter]
-    history.extend(generator.prefix)
+    history = generator.prefix.copy()
     # print(f"Generating from {tokens_to_string(history)}")
     while token >= 0 and count < max_generated_tokens and token != terminator:
         count += 1
-        token = markov_generate_token(generator.transitions, history)
+        token = markov_generate_token(generator.transitions, history, generator.prefix_decay)
         if token == terminator:
             break
         else:
@@ -120,7 +126,7 @@ def append_message(generator, message, generated=False):
     if generated == False:
         calculate_transitions(generator, generator.prefix, start_from = start_from)
     generator.prefix = generator.prefix[-generator.max_prefix_length:]
-    generator.history.append(message)
+    generator.chatHistory.append(message)
 
 
 
@@ -146,6 +152,7 @@ def calculate_transitions(generator, tokens, *,
                 weight = node.probabilities[next_token]
 
             node.probabilities[next_token] = weight + 1
+            node.occurance_count += 1
 
             if max_state_index > state_index:
                 current_token = tokens[token_index - state_index - 1]

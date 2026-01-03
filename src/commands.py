@@ -44,7 +44,7 @@ def commandListHistory(args, generator):
         print("Error: no arguments permitted") # todo
     else:
         print("History:")
-        for message in generator.history:
+        for message in generator.chatHistory:
             print(f"{message.user}> {chatbot.tokens_to_string(message.tokens)}")
     return CommandAction.NOP, None
 
@@ -53,6 +53,47 @@ def commandListTransitions(args, generator):
         print("Error: no arguments permitted") # todo
     else:
         chatbot.debug_print_weights(generator.transitions)
+    return CommandAction.NOP, None
+
+
+def printDict(name, item, prefix = "    "):
+    sep = ""
+    if len(name) > 0:
+        sep = ": "
+    print(f"{prefix}{name}{sep}" + "{")
+    for key in item:
+        val = item[key]
+        printItem(repr(key), val, prefix)
+    print(f"{prefix}" + "}")
+
+def printList(name, item, prefix = "    "):
+    sep = ""
+    if len(name) > 0:
+        sep = ": "
+    print(f"{prefix}{name}{sep}" + "[")
+    for val in item:
+        printItem("", val, prefix)
+    print(f"{prefix}" + "]")
+
+def printItem(name, item, prefix = ""):
+    if hasattr(item, "__dict__"):
+        printDict(f"{name} ({type(item).__name__})", item.__dict__, prefix + "    ")
+    elif isinstance(item, dict):
+        printDict(name, item, prefix + "    ")
+    elif isinstance(item,list):
+        printList(name, item, prefix + "    ")
+    else:
+        sep = ""
+        if len(name) > 0:
+            sep = ": "
+        print(f"{prefix + '    '}{name}{sep}{item}")
+
+
+def commandPrintGenerator(args, generator):
+    if len(args) > 0:
+        print("Error: no arguments permitted") # todo
+    else:
+        printItem("generator", generator)
     return CommandAction.NOP, None
 
 def commandQuit(args, generator):
@@ -66,5 +107,6 @@ commands = {}
 Command("say", "Send chat message, can start with '/'", commandSay),
 Command("history", "List chat history", commandListHistory),
 Command("transitions", "Print transition probabilities", commandListTransitions),
+Command("generator", "Print generator", commandPrintGenerator),
 Command("help", "List available commands", commandHelp),
 Command("quit", "Quit", commandQuit),
