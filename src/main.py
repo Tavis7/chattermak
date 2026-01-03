@@ -143,6 +143,8 @@ def main():
                     case commands.CommandAction.SAY:
                         user_input = result
                         print(f"[{user_name}] said: {user_input}")
+                    case commands.CommandAction.PASS:
+                        should_generate_message = True
                     case commands.CommandAction.NOP:
                         pass
                     case _:

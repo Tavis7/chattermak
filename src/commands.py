@@ -15,7 +15,8 @@ class Command:
 class CommandAction(Enum):
     NOP = 0
     SAY = 1
-    QUIT = 2
+    PASS = 2
+    QUIT = 3
 
 
 def commandHelp(args, generator):
@@ -39,6 +40,16 @@ def commandSay(args, generator):
 
     return action, text
 
+def commandPass(args, generator):
+    action = CommandAction.NOP
+    text = None
+    if len(args) != 0:
+        print("Error: No arguments permitted")
+    else:
+        action = CommandAction.PASS
+        text = None
+
+    return action, text
 def commandListHistory(args, generator):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
@@ -105,6 +116,7 @@ def commandQuit(args, generator):
 
 commands = {}
 Command("say", "Send chat message, can start with '/'", commandSay),
+Command("pass", "Skip your turn", commandPass),
 Command("history", "List chat history", commandListHistory),
 Command("transitions", "Print transition probabilities", commandListTransitions),
 Command("generator", "Print generator", commandPrintGenerator),
