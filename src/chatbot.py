@@ -31,17 +31,16 @@ class PrefixNode:
         self.occurance_count = 0
 
 
-def choose_token(weights):
-    total = 0;
+def choose_token(prefixNode):
     result = -1
-    for key in weights:
-        total += weights[key]
+    total = prefixNode.occurance_count;
+    probabliities = prefixNode.probabilities
 
     if total > 0:
         r = random.randrange(total);
         at = 0
-        for key in weights:
-            at += weights[key]
+        for key in probabliities:
+            at += probabliities[key]
             if at > r:
                 result = key
                 break;
@@ -94,7 +93,7 @@ def markov_generate_token(transitions, state, decay, *, debug_print_decay = Fals
     if debug_print_decay:
         print("decayed: ", decayed, ", depth: ", debug_depth)
 
-    token = choose_token(parent.probabilities)
+    token = choose_token(parent)
     return token
 
 def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
