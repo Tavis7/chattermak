@@ -6,7 +6,7 @@ import commands
 
 try:
     import readline
-except ModuleNotFoundError as e:
+except ModuleNotFoundError:
     print("Failed to import readline. Some line editing features may not be available.")
     readlinee = None
 
@@ -34,7 +34,7 @@ def main():
     enable_debug_output = False;
     filename = None
     max_prefix_length = 6
-    prefix_decay = 3
+    prefix_decay = 1
     use_simple_transitions = False;
 
     program_name = sys.argv[0]
@@ -157,9 +157,10 @@ def main():
 
             if should_generate_message:
                 generated = chatbot.markov_generate(generator)
-                print(f"{generator.username}{prompt_indicator}{chatbot.tokens_to_string(generated)}")
-                message = chatbot.Message(generated, generator.username)
-                chatbot.append_message(generator, message, True)
+                if len(generated) > 0:
+                    print(f"{generator.username}{prompt_indicator}{chatbot.tokens_to_string(generated)}")
+                    message = chatbot.Message(generated, generator.username)
+                    chatbot.append_message(generator, message, True)
 
 
     else:

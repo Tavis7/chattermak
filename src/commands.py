@@ -114,10 +114,22 @@ def commandQuit(args, generator):
     else:
         return CommandAction.QUIT, None
 
+def commandInspect(args, generator):
+    length = 0
+    for item in generator.debug_info:
+        output = []
+        output.append(f"{repr(chatbot.tokens_to_string(item['matched']))}")
+        for key in item:
+            output.append(f"{key}: {item[key]}")
+        print("\t".join(output))
+
+    return CommandAction.NOP, None
+
 commands = {}
 Command("say", "Send chat message, can start with '/'", commandSay),
 Command("pass", "Skip your turn", commandPass),
 Command("history", "List chat history", commandListHistory),
+Command("inspect", "Inspect last generated message", commandInspect),
 Command("transitions", "Print transition probabilities", commandListTransitions),
 Command("generator", "Print generator", commandPrintGenerator),
 Command("help", "List available commands", commandHelp),

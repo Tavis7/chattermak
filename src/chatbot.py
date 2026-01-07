@@ -17,6 +17,8 @@ class TokenGenerator:
 
         self.username = name
 
+        self.debug_info = []
+
 
 class Message:
     def __init__(self, message, user):
@@ -74,39 +76,49 @@ def debug_print_weights_raw(transitions, level=0):
         print("Done printing weights")
         print()
 
-def markov_generate_token(transitions, state, decay, *, debug_print_decay = False):
+def markov_generate_token(transitions, state, decay):
     state_index = len(state) - 1
 
     parent = transitions
-    decayed = parent.occurance_count - decay
-    debug_depth = 0
+    decayed = parent.occurance_count
+    depth = 0
+    prefix = []
     while state_index > 0 and decayed > 0:
         current_token = state[state_index]
         if current_token in parent.history:
-            debug_depth += 1
             state_index -= 1
-            parent = parent.history[current_token]
-            decayed = min(parent.occurance_count, decayed) - decay
+            maybe = parent.history[current_token]
+            decayed = min(maybe.occurance_count, decayed) - decay
+            if decayed > 0:
+                prefix.append(current_token)
+                depth += 1
+                parent = maybe
         else:
             break
 
-    if debug_print_decay:
-        print("decayed: ", decayed, ", depth: ", debug_depth)
-
     token = choose_token(parent)
-    return token
+    prefix.reverse()
+    return {
+        "token":token,
+        "decay": decayed,
+        "depth": depth,
+        "matched": prefix
+    }
 
 def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
     if terminator == None:
         terminator = generator.delimiter
     output = []
+    debug_info = []
     token = 0
     count = 0
     history = generator.prefix.copy()
     # print(f"Generating from {tokens_to_string(history)}")
     while token >= 0 and count < max_generated_tokens and token != terminator:
         count += 1
-        token = markov_generate_token(generator.transitions, history, generator.prefix_decay)
+        got = markov_generate_token(generator.transitions, history, generator.prefix_decay)
+        token = got["token"]
+        debug_info.append(got)
         if token == terminator:
             break
         else:
@@ -116,6 +128,7 @@ def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
                 break;
             history.append(token)
             output.append(token)
+    generator.debug_info = debug_info
     return output
 
 
