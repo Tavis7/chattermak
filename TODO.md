@@ -3,9 +3,11 @@
 - [x] save chat history
     - [x] save messages
     - [x] save transitions
-- [ ] load chat history
-    - [ ] load messages
-    - [ ] save messages
+- [x] load chat history
+    - [x] load messages
+    - [x] load transitions
+
+- [ ] save user name and other generator parameters
 
 - [ ] Update README.md for initial release
 - [ ] Update ROADMAP.md for initial release

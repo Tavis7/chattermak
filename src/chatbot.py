@@ -2,7 +2,7 @@ import random
 import json
 
 class TokenGenerator:
-    def __init__(self, name, *, delimiter=None):
+    def __init__(self, name, *, max_prefix_length = 1, prefix_decay = 0, delimiter=None):
         if delimiter == None:
             delimiter = string_to_tokens("\n")[0]
 
@@ -13,12 +13,14 @@ class TokenGenerator:
 
         self.last_error_token = None
 
-        self.max_prefix_length = 1
-        self.prefix_decay = 0
+        self.max_prefix_length = max_prefix_length
+        self.prefix_decay = prefix_decay
 
-        self.username = name
+        self.chatbot_name = name
 
         self.debug_info = []
+
+        self.modified = False
 
 
 class Message:
@@ -54,6 +56,27 @@ def flattenPrefixNode(node, prefix = []):
         result.extend(flattenPrefixNode(node.prefixes[key], before))
 
     return result
+
+
+def unflattenPrefixNode(data):
+    prefixNode = PrefixNode()
+    #print()
+    for completion in data:
+        #print(f"inserting completion {completion}")
+        prefix = completion['prefix']
+        current = prefixNode
+        for token in prefix:
+            #print(token)
+            if token not in current.prefixes:
+                current.prefixes[token] = PrefixNode()
+            current = current.prefixes[token]
+
+        weightList = completion['next']
+        for weight in weightList:
+            current.probabilities[weight['token']] = weight['weight'];
+            current.occurance_count += weight['weight']
+
+    return prefixNode
 
 
 def choose_token(prefixNode):
@@ -143,6 +166,7 @@ def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
 
 
 def append_message(generator, message, generated=False):
+    generator.modified = True
     start_from = len(generator.prefix) - 1
     generator.prefix.extend(message.tokens)
     generator.prefix.append(generator.delimiter)
@@ -156,6 +180,7 @@ def append_message(generator, message, generated=False):
 def calculate_transitions(generator, tokens, *,
                           null_token=0, enable_debug_output=False,
                           start_from=0):
+    generator.modified |= len(tokens) > 0
     # todo fixme This throws away starting transitions
     transitions = generator.transitions
     #print(f"calculate_transitions({generator}, {tokens}, *, {null_token}, {enable_debug_output}, {start_from})")

@@ -20,7 +20,7 @@ class CommandAction(Enum):
     QUIT = 3
 
 
-def commandHelp(args, generator):
+def commandHelp(args, context):
     if len(args) > 0:
         print("Error: No arguments permitted")
     else:
@@ -30,7 +30,7 @@ def commandHelp(args, generator):
             print(c.name + " " * (16 - name_length) + c.desc)
     return CommandAction.NOP, None
 
-def commandSay(args, generator):
+def commandSay(args, context):
     action = CommandAction.NOP
     text = None
     if len(args) < 1:
@@ -41,7 +41,7 @@ def commandSay(args, generator):
 
     return action, text
 
-def commandPass(args, generator):
+def commandPass(args, context):
     action = CommandAction.NOP
     text = None
     if len(args) != 0:
@@ -51,20 +51,20 @@ def commandPass(args, generator):
         text = None
 
     return action, text
-def commandListHistory(args, generator):
+def commandListHistory(args, context):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
         print("History:")
-        for message in generator.chatHistory:
+        for message in context.generator.chatHistory:
             print(f"{message.user}> {chatbot.tokens_to_string(message.tokens)}")
     return CommandAction.NOP, None
 
-def commandListTransitions(args, generator):
+def commandListTransitions(args, context):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
-        chatbot.debug_print_weights(generator.transitions)
+        chatbot.debug_print_weights(context.generator.transitions)
     return CommandAction.NOP, None
 
 
@@ -101,31 +101,42 @@ def printItem(name, item, prefix = ""):
         print(f"{prefix + '    '}{name}{sep}{item}")
 
 
-def commandPrintGenerator(args, generator):
+def commandPrintGenerator(args, context):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
-        printItem("generator", generator)
+        printItem("generator", context.generator)
     return CommandAction.NOP, None
 
-def commandPrintGeneratorSerialized(args, generator):
+def commandPrintGeneratorSerialized(args, context):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
-        serialized = savefile.serializeGenerator(generator)
+        serialized = savefile.serializeGenerator(context.generator)
         print(serialized)
     return CommandAction.NOP, None
 
-def commandQuit(args, generator):
+def commandQuit(args, context):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
         return CommandAction.NOP, None
     else:
+        if context.generator.modified:
+            i = input("Current chat is not saved. [S]ave/[Q]uit/[C]ancel: ")
+            match i.lower():
+                case "s":
+                    savefile.saveChat(context)
+                case "q":
+                    print("Exiting without saving")
+                    pass
+                case _:
+                    print("Cancelling")
+                    return CommandAction.NOP, None
         return CommandAction.QUIT, None
 
-def commandInspect(args, generator):
+def commandInspect(args, context):
     length = 0
-    for item in generator.debug_info:
+    for item in context.generator.debug_info:
         output = []
         output.append(f"{repr(chatbot.tokens_to_string(item['matched']))}")
         for key in item:
@@ -134,11 +145,25 @@ def commandInspect(args, generator):
 
     return CommandAction.NOP, None
 
-def commandSaveGenerator(args, generator):
+def commandSaveGenerator(args, context):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
         return CommandAction.NOP, None
-    savefile.saveGeneratorAs(generator)
+    savefile.saveChat(context)
+    return CommandAction.NOP, None
+
+def commandLoadGenerator(args, context):
+    if len(args) > 0:
+        print("Error: no arguments permitted") # todo
+        return CommandAction.NOP, None
+    if context.generator.modified:
+        i = input("Current chat is not saved. Continue? [y/n] ")
+        if i.lower() != "y":
+            print("Aborting")
+            return CommandAction.NOP, None
+    print("Loading...")
+    savefile.loadChat(context)
+    #printItem("generator.transitions", context.generator.transitions)
     return CommandAction.NOP, None
 
 commands = {}
@@ -150,5 +175,6 @@ Command("transitions", "Print transition probabilities", commandListTransitions)
 Command("generator", "Print generator", commandPrintGenerator),
 Command("serialize", "Print serialized generator", commandPrintGeneratorSerialized),
 Command("save", "Save generator", commandSaveGenerator),
+Command("load", "Load generator", commandLoadGenerator),
 Command("help", "List available commands", commandHelp),
 Command("quit", "Quit", commandQuit),
