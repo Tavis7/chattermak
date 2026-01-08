@@ -1,6 +1,7 @@
 from enum import Enum
 
 import chatbot
+import savefile
 
 class Command:
     def __init__(self, name, desc, func):
@@ -107,6 +108,14 @@ def commandPrintGenerator(args, generator):
         printItem("generator", generator)
     return CommandAction.NOP, None
 
+def commandPrintGeneratorSerialized(args, generator):
+    if len(args) > 0:
+        print("Error: no arguments permitted") # todo
+    else:
+        serialized = savefile.serializeGenerator(generator)
+        print(serialized)
+    return CommandAction.NOP, None
+
 def commandQuit(args, generator):
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
@@ -125,6 +134,13 @@ def commandInspect(args, generator):
 
     return CommandAction.NOP, None
 
+def commandSaveGenerator(args, generator):
+    if len(args) > 0:
+        print("Error: no arguments permitted") # todo
+        return CommandAction.NOP, None
+    savefile.saveGeneratorAs(generator)
+    return CommandAction.NOP, None
+
 commands = {}
 Command("say", "Send chat message, can start with '/'", commandSay),
 Command("pass", "Skip your turn", commandPass),
@@ -132,5 +148,7 @@ Command("history", "List chat history", commandListHistory),
 Command("inspect", "Inspect last generated message", commandInspect),
 Command("transitions", "Print transition probabilities", commandListTransitions),
 Command("generator", "Print generator", commandPrintGenerator),
+Command("serialize", "Print serialized generator", commandPrintGeneratorSerialized),
+Command("save", "Save generator", commandSaveGenerator),
 Command("help", "List available commands", commandHelp),
 Command("quit", "Quit", commandQuit),

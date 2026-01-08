@@ -1,4 +1,5 @@
 import random
+import json
 
 class TokenGenerator:
     def __init__(self, name, *, delimiter=None):
@@ -27,10 +28,32 @@ class Message:
 
 
 class PrefixNode:
-    def __init__(self, *, history = {}, probabilities = {}):
-        self.history = history.copy()
+    def __init__(self, *, prefixes = {}, probabilities = {}):
+        self.prefixes = prefixes.copy()
         self.probabilities = probabilities.copy()
         self.occurance_count = 0
+
+def flattenPrefixNode(node, prefix = []):
+    # [{prefix:p, {token:t, weight:w}}]
+    result = []
+    completionList = []
+    for key in node.probabilities:
+        completionList.append({
+            "token": key,
+            "weight": node.probabilities[key],
+            "comment": (tokens_to_string([key]))
+        })
+    result.append({
+        "prefix": prefix,
+        "next": completionList,
+        "comment": (tokens_to_string(prefix))
+    })
+    for key in node.prefixes:
+        before = [key]
+        before.extend(prefix)
+        result.extend(flattenPrefixNode(node.prefixes[key], before))
+
+    return result
 
 
 def choose_token(prefixNode):
@@ -49,32 +72,19 @@ def choose_token(prefixNode):
 
     return result
 
-def debug_print_weights(transitions, so_far=([],[])):
-    if len(so_far[0]) == 0:
-        #print("raw")
-        #print(transitions)
-        print("Printing weights")
-    print(f"{so_far[1]} -> {transitions.probabilities}")
-    for key in transitions.history:
-        at = ([key],[chr(key)])
-        at[0].extend(so_far[0])
-        at[1].extend(so_far[1])
-        debug_print_weights(transitions.history[key], at)
-    if len(so_far[0]) == 0:
-        print("Done printing weights")
-        print()
 
-def debug_print_weights_raw(transitions, level=0):
-    if level == 0:
-        #print("raw")
-        #print(transitions)
-        print("Printing weights")
-    for key in transitions:
-        print(f"{4 * level * ' '}{key}: {transitions[key].probabilities}")
-        debug_print_weights_raw(transitions[key].history, level + 1)
-    if level == 0:
-        print("Done printing weights")
-        print()
+
+
+def debug_print_weights(transitions, so_far=([],[])):
+    flattened = flattenPrefixNode(transitions)
+    for node in flattened:
+        text = f"{repr(node['comment'])} ({node['prefix']}):\n    ["
+        parts = []
+        for completion in node['next']:
+            parts.append(f"{repr(completion['comment'])}({(completion['token'])}): " +
+                f"{completion['weight']}")
+        print("".join([text, ", ".join(parts), "]"]))
+
 
 def markov_generate_token(transitions, state, decay):
     state_index = len(state) - 1
@@ -85,9 +95,9 @@ def markov_generate_token(transitions, state, decay):
     prefix = []
     while state_index > 0 and decayed > 0:
         current_token = state[state_index]
-        if current_token in parent.history:
+        if current_token in parent.prefixes:
             state_index -= 1
-            maybe = parent.history[current_token]
+            maybe = parent.prefixes[current_token]
             decayed = min(maybe.occurance_count, decayed) - decay
             if decayed > 0:
                 prefix.append(current_token)
@@ -112,11 +122,11 @@ def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
     debug_info = []
     token = 0
     count = 0
-    history = generator.prefix.copy()
-    # print(f"Generating from {tokens_to_string(history)}")
+    prefixes = generator.prefix.copy()
+    # print(f"Generating from {tokens_to_string(prefixes)}")
     while token >= 0 and count < max_generated_tokens and token != terminator:
         count += 1
-        got = markov_generate_token(generator.transitions, history, generator.prefix_decay)
+        got = markov_generate_token(generator.transitions, prefixes, generator.prefix_decay)
         token = got["token"]
         debug_info.append(got)
         if token == terminator:
@@ -126,7 +136,7 @@ def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
                 generator.last_error_token = token
                 print(f"Encountered error token: {token}")
                 break;
-            history.append(token)
+            prefixes.append(token)
             output.append(token)
     generator.debug_info = debug_info
     return output
@@ -170,9 +180,9 @@ def calculate_transitions(generator, tokens, *,
             if max_state_index > state_index:
                 current_token = tokens[token_index - state_index - 1]
 
-                if current_token not in node.history:
-                    node.history[current_token] = PrefixNode()
-                node = node.history[current_token]
+                if current_token not in node.prefixes:
+                    node.prefixes[current_token] = PrefixNode()
+                node = node.prefixes[current_token]
 
     return
 
@@ -195,7 +205,7 @@ def string_to_tokens(string):
 
 example_generator = TokenGenerator("Example generator")
 example_generator.transitions = PrefixNode(
-    history = {
+    prefixes = {
         1:  PrefixNode(probabilities={1: 10, 2: 3, 3: 5, 4: 1}),
         2:  PrefixNode(probabilities={1: 7, 2: 5, 3: 1, 4: 1}),
         3:  PrefixNode(probabilities={1: 3, 2: 3, 3: 9, 4: 1, 5: 1}),

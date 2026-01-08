@@ -1,9 +1,16 @@
 # TODO list
 
-- [ ] save chat history
+- [x] save chat history
+    - [x] save messages
+    - [x] save transitions
+- [ ] load chat history
+    - [ ] load messages
+    - [ ] save messages
+
 - [ ] Update README.md for initial release
 - [ ] Update ROADMAP.md for initial release
 - [ ] Update TODO.md for initial release
+- [ ] save /commands to readline history
 
 
 - [ ] Merge --commands and /commands
