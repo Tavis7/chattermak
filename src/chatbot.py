@@ -65,7 +65,7 @@ def unflattenPrefixNode(data):
         #print(f"inserting completion {completion}")
         prefix = completion['prefix']
         current = prefixNode
-        for token in prefix:
+        for token in prefix[::-1]:
             #print(token)
             if token not in current.prefixes:
                 current.prefixes[token] = PrefixNode()

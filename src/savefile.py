@@ -73,6 +73,6 @@ def saveChat(context, filename = defaultChatFile):
     try:
         with open(filename, 'w') as file:
             file.write(serializeGenerator(generator))
-        generator.Modified = False
+        generator.modified = False
     except Exception as e:
         print(f"Failed to save chat to '{filename}': {e}")
