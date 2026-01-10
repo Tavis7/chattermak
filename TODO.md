@@ -1,29 +1,42 @@
 # TODO list
 
-- [x] save chat history
-    - [x] save messages
-    - [x] save transitions
-- [x] load chat history
-    - [x] load messages
-    - [x] load transitions
+- [ ] Warn before overwriting savefile
+- [ ] Accept filename argument for /save
+- [ ] Check for 'data/aborted.json' on start
 
-- [ ] save user name and other generator parameters
+---
 
 - [ ] Update README.md for initial release
 - [ ] Update ROADMAP.md for initial release
 - [ ] Update TODO.md for initial release
-- [ ] save /commands to readline history
 
+---
+
+- [x] Save chat history
+    - [x] Save messages
+    - [x] Save transitions
+- [x] Load chat history
+    - [x] Load messages
+    - [x] Load transitions
+
+---
+
+- [ ] Chat names
+- [ ] Save user name and other generator parameters
+- [ ] Save /commands to readline history
+
+---
 
 - [ ] Merge --commands and /commands
 - [ ] Option to print message generation stats
 - [ ] Clean up input files
 - [ ] Fractional decay
 
+---
 
-- [x] dynamic prefix length / decay
-- [x] separate chat history into messages instead of single list of tokens
-- [x] readline
+- [x] Dynamic prefix length / decay
+- [x] Separate chat history into messages instead of single list of tokens
+- [x] Readline
 - [ ] Slash commands
     - [x] Print transition weights
         - /transitions
@@ -31,9 +44,13 @@
     - [x] /help [command]
     - [x] /quit
     - [x] /history
-    - [ ] last n lines of /history
-- [ ] Tokenizer tests
+    - [ ] Print last n lines of /history
+    - [ ] Pagination for command output
+- [ ] Tests
+- [ ] (Type annotations](https://docs.python.org/3/library/typing.html)
 - [ ] Refactor
+
+---
 
 - [x] Basic chat interface
     - [x] Chat input loop
