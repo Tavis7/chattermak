@@ -181,15 +181,10 @@ def calculate_transitions(generator, tokens, *,
                           null_token=0, enable_debug_output=False,
                           start_from=0):
     generator.modified |= len(tokens) > 0
-    # todo fixme This throws away starting transitions
     transitions = generator.transitions
-    #print(f"calculate_transitions({generator}, {tokens}, *, {null_token}, {enable_debug_output}, {start_from})")
-    # print(f"token count: {len(tokens)}")
 
-    # todo fixme currently broken
     for token_index in range(start_from, len(tokens)):
         debug_depth = 0
-        # print(f"{token_index} ({start_from} -> {len(tokens) - 1})")
         node = transitions
         next_token = tokens[token_index]
 

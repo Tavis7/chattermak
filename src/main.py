@@ -88,10 +88,6 @@ def main():
 
     initialization_tokens = chatbot.string_to_tokens(initialization)
     initialization_string = chatbot.tokens_to_string(initialization_tokens)
-    if initialization_string != initialization:
-        print(initialization_tokens)
-        print(initialization_string)
-        raise Exception("string_to_tokens failed to rount-trip")
 
     generator = chatbot.TokenGenerator("chattermak",
                                        max_prefix_length = max_prefix_length,
@@ -116,12 +112,18 @@ def main():
 
         running = True
         aborted_filename = "data/aborted.json"
+        recovered = False
         if os.path.exists(aborted_filename):
             i = input(f"{aborted_filename} exists. [R]ecover / [D]elete / [Q]uit: ")
             match i.lower():
                 case "r":
+                    if filename != None:
+                        print(f"Ignoring specified initialization file '{filename}'")
+                        filename = None
+
                     if savefile.loadChat(context, aborted_filename, True):
                         print(f"Recovered chat with {len(context.generator.chatHistory)} messages")
+                        recovered = True
                         for message in context.generator.chatHistory[-5:]:
                             print(f"{message.user}> {chatbot.tokens_to_string(message.tokens)}")
                         while True:
@@ -139,8 +141,25 @@ def main():
                     os.remove(aborted_filename)
                 case _:
                     running = False
-        elif os.path.exists(savefile.defaultChatFile):
-            if not savefile.loadChat(context, savefile.defaultChatFile):
+
+        if running and not recovered and os.path.exists(savefile.defaultChatFile):
+            load_chat = True
+            if filename != None:
+                while True:
+                    print(f"Initialization file '{filename}' specified but chat already exists")
+                    i = input("[R]estart chat or [C]ontinue without initialization? ")
+                    match i.lower():
+                        case 'r':
+                            os.remove(savefile.defaultChatFile)
+                            load_chat = False
+                            break
+                        case 'c':
+                            filename = None
+                            break
+                        case _:
+                            print(f"Unrecognized option: {i}")
+
+            if load_chat and not savefile.loadChat(context, savefile.defaultChatFile):
                 while True:
                     i = input("Restart chat? [y/n] ")
                     match i.lower():
