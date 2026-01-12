@@ -1,6 +1,6 @@
 # TODO list
 
-- [ ] Warn before overwriting savefile
+- [ ] Warn before overwriting modified savefile
 - [ ] Accept filename argument for /save
 - [ ] Check for 'data/aborted.json' on start
 
