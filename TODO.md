@@ -1,9 +1,5 @@
 # TODO list
 
-- [ ] Warn before overwriting modified savefile
-- [ ] Accept filename argument for /save
-- [ ] Check for 'data/aborted.json' on start
-
 ---
 
 - [ ] Update README.md for initial release
@@ -18,12 +14,16 @@
 - [x] Load chat history
     - [x] Load messages
     - [x] Load transitions
+- [x] Check for 'data/aborted.json' on start
+    - [x] Offer to save after recovery
 
 ---
 
 - [ ] Chat names
 - [ ] Save user name and other generator parameters
 - [ ] Save /commands to readline history
+- [ ] Warn before overwriting modified savefile
+- [ ] Support multiple savefiles
 
 ---
 

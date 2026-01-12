@@ -1,10 +1,11 @@
 import sys
 import re
+import os
+import traceback
 
 import chatbot
 import commands
 import savefile
-import traceback
 
 try:
     import readline
@@ -27,7 +28,7 @@ def usage(program_name, arg=None):
         print(f"Unrecognized argument: '{arg}'")
 
     print(f"Usage: {program_name} [--help] [--input-file <filename>] [--chat | --line-count <count>] [--max-prefix-length <size>] [--prefix-decay <decay_rate>] [--enable-debug-output]")
-    print(f"    Note: '--chat' is short for '--line-count 0'")
+    print(f"    Note: '--line-count 0' is another name for '--chat'")
 
 
 class Context:
@@ -112,8 +113,51 @@ def main():
         should_generate_message = True
         user_name = "user"
         prompt_indicator = "> "
+
+        running = True
+        aborted_filename = "data/aborted.json"
+        if os.path.exists(aborted_filename):
+            i = input(f"{aborted_filename} exists. [R]ecover / [D]elete / [Q]uit: ")
+            match i.lower():
+                case "r":
+                    if savefile.loadChat(context, aborted_filename, True):
+                        print(f"Recovered chat with {len(context.generator.chatHistory)} messages")
+                        for message in context.generator.chatHistory[-5:]:
+                            print(f"{message.user}> {chatbot.tokens_to_string(message.tokens)}")
+                        while True:
+                            i = input("Save recovered data now? [y/n] ")
+                            match i.lower():
+                                case 'y':
+                                    if savefile.saveChat(context):
+                                        break
+                                case 'n':
+                                    break
+                                case _:
+                                    print(f"Unrecognized option: {i}")
+                        os.remove(aborted_filename)
+                case "d":
+                    os.remove(aborted_filename)
+                case _:
+                    running = False
+        elif os.path.exists(savefile.defaultChatFile):
+            if not savefile.loadChat(context, savefile.defaultChatFile):
+                while True:
+                    i = input("Restart chat? [y/n] ")
+                    match i.lower():
+                        case 'y':
+                            os.remove(savefile.defaultChatFile)
+                            running = True
+                            break
+                        case 'n':
+                            print("Quitting")
+                            running = False
+                            break
+                        case _:
+                            print(f"Unrecognized option: {i}")
+
+
         try:
-            while True:
+            while running:
                 generator = context.generator
                 user_input = None
                 user_input = input(f"{user_name}{prompt_indicator}")
@@ -169,7 +213,7 @@ def main():
             if enable_debug_output:
                 traceback.print_exception(e)
             if context.generator.modified:
-                savefile.saveChat(context, "data/aborted.json")
+                savefile.saveChat(context, aborted_filename)
             print("Exiting")
 
     else:
