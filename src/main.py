@@ -4,6 +4,7 @@ import re
 import chatbot
 import commands
 import savefile
+import traceback
 
 try:
     import readline
@@ -111,73 +112,65 @@ def main():
         should_generate_message = True
         user_name = "user"
         prompt_indicator = "> "
-        while True:
-            generator = context.generator
-            try:
-                user_input = input(f"{user_name}{prompt_indicator}")
-            except EOFError:
-                should_generate_message = False
-                print()
-                if context.generator.modified:
-                    savefile.saveChat(context, "data/aborted.json")
-                print("end of input: quitting")
-                break
-            except KeyboardInterrupt:
-                should_generate_message = False
-                if context.generator.modified:
-                    print("Your chat hasn't been saved. Use '/save' and try again")
-                else:
-                    print()
-                    print("keyboard interrupt: quitting")
-                    break
-
-            if enable_debug_output == True:
-                print(f"Got user input: '{user_input}'")
-
-            if len(user_input) > 0 and user_input[0] == '/':
-                if enable_debug_output == True:
-                    print(f"Got command: {user_input}")
-                should_generate_message = False
-                command_parts = user_input.strip().split(maxsplit = 1)
-                command_parts.append("")
+        try:
+            while True:
+                generator = context.generator
                 user_input = None
+                user_input = input(f"{user_name}{prompt_indicator}")
 
-                if enable_debug_output:
-                    print(command_parts)
-                    print(command_parts[0])
+                if enable_debug_output == True:
+                    print(f"Got user input: '{user_input}'")
 
-                action = commands.CommandAction.NOP
-                result = None
-                if command_parts[0] in commands.commands:
-                    action, result = commands.commands[command_parts[0]].func(command_parts[1], context)
-                else:
-                    print(f"Unknown command: {command_parts[0]}")
+                if len(user_input) > 0 and user_input[0] == '/':
+                    if enable_debug_output == True:
+                        print(f"Got command: {user_input}")
+                    should_generate_message = False
+                    command_parts = user_input.strip().split(maxsplit = 1)
+                    command_parts.append("")
+                    user_input = None
 
-                match action:
-                    case commands.CommandAction.QUIT:
-                        break
-                    case commands.CommandAction.SAY:
-                        user_input = result
-                        print(f"[{user_name}] said: {user_input}")
-                    case commands.CommandAction.PASS:
-                        should_generate_message = True
-                    case commands.CommandAction.NOP:
-                        pass
-                    case _:
-                        print(f"ERROR: Unhandled command action")
+                    if enable_debug_output:
+                        print(command_parts)
+                        print(command_parts[0])
 
-            if user_input != None:
-                message = chatbot.Message(chatbot.string_to_tokens(user_input), user_name)
-                chatbot.append_message(generator, message)
-                should_generate_message = True
+                    action = commands.CommandAction.NOP
+                    result = None
+                    if command_parts[0] in commands.commands:
+                        action, result = commands.commands[command_parts[0]].func(command_parts[1], context)
+                    else:
+                        print(f"Unknown command: {command_parts[0]}")
 
-            if should_generate_message:
-                generated = chatbot.markov_generate(generator)
-                if len(generated) > 0:
-                    print(f"{generator.chatbot_name}{prompt_indicator}{chatbot.tokens_to_string(generated)}")
-                    message = chatbot.Message(generated, generator.chatbot_name)
-                    chatbot.append_message(generator, message, True)
+                    match action:
+                        case commands.CommandAction.QUIT:
+                            break
+                        case commands.CommandAction.SAY:
+                            user_input = result
+                            print(f"[{user_name}] said: {user_input}")
+                        case commands.CommandAction.PASS:
+                            should_generate_message = True
+                        case commands.CommandAction.NOP:
+                            pass
+                        case _:
+                            print(f"ERROR: Unhandled command action")
 
+                if user_input != None:
+                    message = chatbot.Message(chatbot.string_to_tokens(user_input), user_name)
+                    chatbot.append_message(generator, message)
+                    should_generate_message = True
+
+                if should_generate_message:
+                    generated = chatbot.markov_generate(generator)
+                    if len(generated) > 0:
+                        print(f"{generator.chatbot_name}{prompt_indicator}{chatbot.tokens_to_string(generated)}")
+                        message = chatbot.Message(generated, generator.chatbot_name)
+                        chatbot.append_message(generator, message, True)
+        except BaseException as e:
+            print()
+            if enable_debug_output:
+                traceback.print_exception(e)
+            if context.generator.modified:
+                savefile.saveChat(context, "data/aborted.json")
+            print("Exiting")
 
     else:
         if use_simple_transitions == True:
