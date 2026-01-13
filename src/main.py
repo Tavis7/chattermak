@@ -27,7 +27,7 @@ def usage(program_name, arg=None):
     if arg != None:
         print(f"Unrecognized argument: '{arg}'")
 
-    print(f"Usage: {program_name} [--help] [--input-file <filename>] [--chat | --line-count <count>] [--max-prefix-length <size>] [--prefix-decay <decay_rate>] [--enable-debug-output]")
+    print(f"Usage: {program_name} [--help] [--initialization-file <filename>] [--chat | --line-count <count>] [--match-length <length>] [--match-decay <decay>] [--enable-debug-output]")
     print(f"    Note: '--line-count 0' is another name for '--chat'")
 
 
@@ -40,7 +40,7 @@ def main():
     loop_count = 0
     enable_debug_output = False;
     filename = None
-    max_prefix_length = 6
+    match_length = 6
     prefix_decay = 1
     use_simple_transitions = False;
 
@@ -49,7 +49,7 @@ def main():
     while (arg_index < len(sys.argv)):
         #print(f"Parsing arg {arg_index} (= {sys.argv[arg_index]})")
         match (sys.argv[arg_index]):
-            case "--input-file":
+            case "--initialization-file":
                 arg_index += 1
                 filename = sys.argv[arg_index]
             case "--line-count":
@@ -57,10 +57,10 @@ def main():
                 loop_count = int(sys.argv[arg_index])
             case "--chat":
                 loop_count = 0
-            case "--max-prefix-length":
+            case "--match-length":
                 arg_index += 1
-                max_prefix_length = int(sys.argv[arg_index])
-            case "--prefix-decay":
+                match_length = int(sys.argv[arg_index])
+            case "--match-decay":
                 arg_index += 1
                 prefix_decay = int(sys.argv[arg_index])
             case "--enable-debug-output":
@@ -79,7 +79,7 @@ def main():
         filename = "README.md"
 
     print("Hello from chattermak!")
-    print(f"Using state size: {max_prefix_length}, decay: {prefix_decay}")
+    print(f"Using match length: {match_length}, match decay: {prefix_decay}")
     print()
 
     initialization = "";
@@ -90,7 +90,7 @@ def main():
     initialization_string = chatbot.tokens_to_string(initialization_tokens)
 
     generator = chatbot.TokenGenerator("chattermak",
-                                       max_prefix_length = max_prefix_length,
+                                       max_prefix_length = match_length,
                                        prefix_decay = prefix_decay)
     context = Context(generator)
 
@@ -189,7 +189,6 @@ def main():
                         print(f"Got command: {user_input}")
                     should_generate_message = False
                     command_parts = user_input.strip().split(maxsplit = 1)
-                    command_parts.append("")
                     user_input = None
 
                     if enable_debug_output:
@@ -199,7 +198,7 @@ def main():
                     action = commands.CommandAction.NOP
                     result = None
                     if command_parts[0] in commands.commands:
-                        action, result = commands.commands[command_parts[0]].func(command_parts[1], context)
+                        action, result = commands.commands[command_parts[0]].func(command_parts[1:], context)
                     else:
                         print(f"Unknown command: {command_parts[0]}")
 
@@ -229,7 +228,8 @@ def main():
                         chatbot.append_message(generator, message, True)
         except BaseException as e:
             print()
-            if enable_debug_output:
+            if (not isinstance(e, KeyboardInterrupt)
+                and not isinstance(e, EOFError)):
                 traceback.print_exception(e)
             if context.generator.modified:
                 savefile.saveChat(context, aborted_filename)

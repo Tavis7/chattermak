@@ -1,7 +1,5 @@
 # TODO list
 
----
-
 - [ ] Update README.md for initial release
 - [ ] Update ROADMAP.md for initial release
 - [ ] Update TODO.md for initial release

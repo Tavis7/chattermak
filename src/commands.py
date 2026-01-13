@@ -4,11 +4,12 @@ import chatbot
 import savefile
 
 class Command:
-    def __init__(self, name, desc, func):
+    def __init__(self, name, desc, func, *, debug = False):
         command_name = f"/{name}"
         self.name = command_name
         self.desc = desc
         self.func = func
+        self.debug = debug
         commands[command_name] = self
 
 
@@ -21,13 +22,23 @@ class CommandAction(Enum):
 
 
 def commandHelp(args, context):
-    if len(args) > 0:
-        print("Error: No arguments permitted")
+    debug = False
+    for arg in args:
+        print(f"args: {repr(args)}")
+        print(f"arg: {arg}")
+        if not debug and arg == "debug":
+            debug = True
+        else:
+            print(f"Error: invalid argument: {arg}")
+            print(f"    in {repr(args)}")
+            return CommandAction.NOP, None
+
     else:
         for key in commands:
-            c = commands[key]
-            name_length = len(c.name)
-            print(c.name + " " * (16 - name_length) + c.desc)
+            if debug or not commands[key].debug:
+                c = commands[key]
+                name_length = len(c.name)
+                print(c.name + " " * (16 - name_length) + c.desc)
     return CommandAction.NOP, None
 
 def commandSay(args, context):
@@ -171,9 +182,9 @@ Command("say", "Send chat message, can start with '/'", commandSay),
 Command("pass", "Skip your turn", commandPass),
 Command("history", "List chat history", commandListHistory),
 Command("inspect", "Inspect last generated message", commandInspect),
-Command("transitions", "Print transition probabilities", commandListTransitions),
-Command("generator", "Print generator", commandPrintGenerator),
-Command("serialize", "Print serialized generator", commandPrintGeneratorSerialized),
+Command("transitions", "Print transition probabilities", commandListTransitions, debug=True),
+Command("generator", "Print generator", commandPrintGenerator, debug=True),
+Command("serialize", "Print serialized generator", commandPrintGeneratorSerialized, debug=True),
 Command("save", "Save generator", commandSaveGenerator),
 Command("load", "Load generator", commandLoadGenerator),
 Command("help", "List available commands", commandHelp),

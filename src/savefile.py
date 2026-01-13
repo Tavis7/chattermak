@@ -18,7 +18,7 @@ def serializeGenerator(generator):
     result["version"] = currentSaveFileVersion
     result["messages"] = messages
     result["transitions"] = transitions
-    return json.dumps(result, sort_keys=False, indent=4)
+    return json.dumps(result, sort_keys=False, indent=None)
 
 def deserializeVersion0(old, data):
     if data['version'] != 0:
