@@ -2,9 +2,22 @@ from enum import Enum
 
 import chatbot
 import savefile
+from main import Context
+from collections.abc import Callable
+from typing import Literal
+import typing
+
+class CommandAction(Enum):
+    NOP = 0
+    SAY = 1
+    PASS = 2
+    QUIT = 3
+
+
+type CommandResult = tuple[CommandAction, str|None]
 
 class Command:
-    def __init__(self, name, desc, func, *, debug = False):
+    def __init__(self, name:str, desc:str, func:Callable[[list[str], Context], CommandResult], *, debug:bool = False):
         command_name = f"/{name}"
         self.name = command_name
         self.desc = desc
@@ -14,14 +27,7 @@ class Command:
 
 
 
-class CommandAction(Enum):
-    NOP = 0
-    SAY = 1
-    PASS = 2
-    QUIT = 3
-
-
-def commandHelp(args, context):
+def commandHelp(args:list[str], context:Context) -> CommandResult:
     debug = False
     for arg in args:
         print(f"args: {repr(args)}")
@@ -41,18 +47,18 @@ def commandHelp(args, context):
                 print(c.name + " " * (16 - name_length) + c.desc)
     return CommandAction.NOP, None
 
-def commandSay(args, context):
+def commandSay(args:list[str], context:Context) -> CommandResult:
     action = CommandAction.NOP
     text = None
     if len(args) < 1:
         print("Error: at least one argument required")
     else:
         action = CommandAction.SAY
-        text = args
+        text = " ".join(args)
 
     return action, text
 
-def commandPass(args, context):
+def commandPass(args:list[str], context:Context) -> CommandResult:
     action = CommandAction.NOP
     text = None
     if len(args) != 0:
@@ -62,7 +68,7 @@ def commandPass(args, context):
         text = None
 
     return action, text
-def commandListHistory(args, context):
+def commandListHistory(args:list[str], context:Context) -> CommandResult:
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
@@ -71,7 +77,7 @@ def commandListHistory(args, context):
             print(f"{message.user}> {chatbot.tokens_to_string(message.tokens)}")
     return CommandAction.NOP, None
 
-def commandListTransitions(args, context):
+def commandListTransitions(args:list[str], context:Context) -> CommandResult:
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
@@ -79,7 +85,7 @@ def commandListTransitions(args, context):
     return CommandAction.NOP, None
 
 
-def printDict(name, item, prefix = "    "):
+def printDict(name:str, item:dict[typing.Any, typing.Any], prefix:str = "    ") -> None:
     sep = ""
     if len(name) > 0:
         sep = ": "
@@ -89,7 +95,7 @@ def printDict(name, item, prefix = "    "):
         printItem(repr(key), val, prefix)
     print(f"{prefix}" + "}")
 
-def printList(name, item, prefix = "    "):
+def printList(name:str, item:list[typing.Any], prefix:str = "    ") -> None:
     sep = ""
     if len(name) > 0:
         sep = ": "
@@ -98,7 +104,7 @@ def printList(name, item, prefix = "    "):
         printItem("", val, prefix)
     print(f"{prefix}" + "]")
 
-def printItem(name, item, prefix = ""):
+def printItem(name:str, item:typing.Any, prefix:str = "") -> None:
     if hasattr(item, "__dict__"):
         printDict(f"{name} ({type(item).__name__})", item.__dict__, prefix + "    ")
     elif isinstance(item, dict):
@@ -112,14 +118,14 @@ def printItem(name, item, prefix = ""):
         print(f"{prefix + '    '}{name}{sep}{item}")
 
 
-def commandPrintGenerator(args, context):
+def commandPrintGenerator(args:list[str], context:Context) -> CommandResult:
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
         printItem("generator", context.generator)
     return CommandAction.NOP, None
 
-def commandPrintGeneratorSerialized(args, context):
+def commandPrintGeneratorSerialized(args:list[str], context:Context) -> CommandResult:
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
     else:
@@ -127,7 +133,7 @@ def commandPrintGeneratorSerialized(args, context):
         print(serialized)
     return CommandAction.NOP, None
 
-def commandQuit(args, context):
+def commandQuit(args:list[str], context:Context) -> CommandResult:
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
         return CommandAction.NOP, None
@@ -145,25 +151,25 @@ def commandQuit(args, context):
                     return CommandAction.NOP, None
         return CommandAction.QUIT, None
 
-def commandInspect(args, context):
+def commandInspect(args:list[str], context:Context) -> CommandResult:
     length = 0
     for item in context.generator.debug_info:
         output = []
         output.append(f"{repr(chatbot.tokens_to_string(item['matched']))}")
         for key in item:
-            output.append(f"{key}: {item[key]}")
+            output.append(f"{key}: {item[key]}") # type:ignore[literal-required]
         print("\t".join(output))
 
     return CommandAction.NOP, None
 
-def commandSaveGenerator(args, context):
+def commandSaveGenerator(args:list[str], context:Context) -> CommandResult:
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
         return CommandAction.NOP, None
     savefile.saveChat(context)
     return CommandAction.NOP, None
 
-def commandLoadGenerator(args, context):
+def commandLoadGenerator(args:list[str], context:Context) -> CommandResult:
     if len(args) > 0:
         print("Error: no arguments permitted") # todo
         return CommandAction.NOP, None
@@ -177,7 +183,7 @@ def commandLoadGenerator(args, context):
     #printItem("generator.transitions", context.generator.transitions)
     return CommandAction.NOP, None
 
-commands = {}
+commands:dict[str, Command] = {}
 Command("say", "Send chat message, can start with '/'", commandSay),
 Command("pass", "Skip your turn", commandPass),
 Command("history", "List chat history", commandListHistory),

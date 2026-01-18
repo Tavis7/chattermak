@@ -6,7 +6,7 @@ An experimental chat bot powered by Markov chains
 
 Inspired by [tsoding](https://www.youtube.com/watch?v=6dCqR9p0yWY)
 
-- [byte pair encoding on wikipedia](https://en.wikipedia.org/wiki/Byte-pair_encoding)
+[byte pair encoding on wikipedia](https://en.wikipedia.org/wiki/Byte-pair_encoding)
 
 The current version does not make use of byte pair encoding. Instead, the focus
 has been on making short chats more chaotic.

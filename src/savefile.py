@@ -4,23 +4,42 @@ import copy
 import traceback
 import os
 
-currentSaveFileVersion = 0
+from typing import TypedDict, Literal
+from main import Context
+
+from chatbot import TokenGenerator, Token, flattenedPrefixNode
+
+currentSaveFileVersion:Literal[0] = 0
 defaultChatFile =  "./data/chat_history.json"
 
-def serializeGenerator(generator):
-    result = {}
-    messages = []
+class SaveFileV0Message(TypedDict):
+    tokens:list[Token]
+    user:str
+
+class SaveFileV0(TypedDict):
+    version: Literal[0]
+    messages: list[SaveFileV0Message]
+    transitions: list[flattenedPrefixNode]
+
+
+def serializeGenerator(generator:TokenGenerator) -> str:
+    messages:list[SaveFileV0Message] = []
     for message in generator.chatHistory:
         messages.append({"tokens": message.tokens, "user": message.user})
 
     transitions = chatbot.flattenPrefixNode(generator.transitions)
 
+    result:SaveFileV0 = {
+        "version":currentSaveFileVersion,
+        "messages":messages,
+        "transitions":transitions
+    }
     result["version"] = currentSaveFileVersion
     result["messages"] = messages
     result["transitions"] = transitions
     return json.dumps(result, sort_keys=False, indent=None)
 
-def deserializeVersion0(old, data):
+def deserializeVersion0(old:TokenGenerator, data:SaveFileV0) -> TokenGenerator:
     if data['version'] != 0:
         raise Exception("Invalid version: {data['version']}")
 
@@ -40,14 +59,14 @@ def deserializeVersion0(old, data):
 
     return generator
 
-def deserializeGenerator(currentGenerator, data):
+def deserializeGenerator(currentGenerator:TokenGenerator, data:SaveFileV0) -> TokenGenerator:
     match data['version']:
         case 0:
             return deserializeVersion0(currentGenerator, data)
         case _:
             print(f"Error: unknown save version: {data['version']}")
 
-def loadChat(context, filename = defaultChatFile, setModified = False):
+def loadChat(context:Context, filename:str = defaultChatFile, setModified:bool = False) -> bool:
     success = False
     print(f"Loading '{filename}'")
     try:
@@ -67,7 +86,7 @@ def loadChat(context, filename = defaultChatFile, setModified = False):
     return success
 
 
-def saveChat(context, filename = defaultChatFile):
+def saveChat(context:Context, filename:str = defaultChatFile) -> bool:
     success = False
     generator = context.generator
     directory = os.path.dirname(filename)

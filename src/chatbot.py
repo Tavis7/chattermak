@@ -1,64 +1,78 @@
 import random
 import json
+from typing import TypedDict, NewType
+
+Token = NewType("Token", int)
 
 class TokenGenerator:
-    def __init__(self, name, *, max_prefix_length = 1, prefix_decay = 0, delimiter=None):
+    def __init__(self, name:str, *, max_prefix_length:int = 1, prefix_decay:int = 0, delimiter:Token|None = None):
         if delimiter == None:
             delimiter = string_to_tokens("\n")[0]
 
-        self.chatHistory = []
+        self.chatHistory:list[Message] = []
         self.transitions = PrefixNode()
-        self.delimiter = delimiter
-        self.prefix = [self.delimiter]
+        self.delimiter:Token = delimiter
+        self.prefix:list[Token] = [self.delimiter]
 
-        self.last_error_token = None
+        self.last_error_token:Token|None = None
 
         self.max_prefix_length = max_prefix_length
         self.prefix_decay = prefix_decay
 
         self.chatbot_name = name
 
-        self.debug_info = []
+        self.debug_info:list[GeneratedTokenInfo] = []
 
         self.modified = False
 
 
 class Message:
-    def __init__(self, message, user):
+    def __init__(self, message:list[Token], user:str):
         self.tokens = message
         self.user = user
 
 
 class PrefixNode:
-    def __init__(self, *, prefixes = {}, probabilities = {}):
+    def __init__(self, *, prefixes:dict[Token, "PrefixNode"] = {}, probabilities:dict[Token, int] = {}):
         self.prefixes = prefixes.copy()
         self.probabilities = probabilities.copy()
         self.occurance_count = 0
 
-def flattenPrefixNode(node, prefix = []):
+
+class flattenedCompletionList(TypedDict):
+    token:Token
+    weight:int
+    comment:str
+
+class flattenedPrefixNode(TypedDict):
+    prefix:list[Token]
+    next:list[flattenedCompletionList]
+    comment:str
+
+def flattenPrefixNode(node:PrefixNode, prefix:list[Token] = []) -> list[flattenedPrefixNode]:
     # [{prefix:p, {token:t, weight:w}}]
-    result = []
-    completionList = []
-    for key in node.probabilities:
+    result:list[flattenedPrefixNode] = []
+    completionList:list[flattenedCompletionList] = []
+    for probKey in node.probabilities:
         completionList.append({
-            "token": key,
-            "weight": node.probabilities[key],
-            "comment": (tokens_to_string([key]))
+            "token": probKey,
+            "weight": node.probabilities[probKey],
+            "comment": (tokens_to_string([probKey]))
         })
     result.append({
         "prefix": prefix,
         "next": completionList,
         "comment": (tokens_to_string(prefix))
     })
-    for key in node.prefixes:
-        before = [key]
+    for prefixKey in node.prefixes:
+        before:list[Token] = [prefixKey]
         before.extend(prefix)
-        result.extend(flattenPrefixNode(node.prefixes[key], before))
+        result.extend(flattenPrefixNode(node.prefixes[prefixKey], before))
 
     return result
 
 
-def unflattenPrefixNode(data):
+def unflattenPrefixNode(data:list[flattenedPrefixNode]) -> PrefixNode:
     prefixNode = PrefixNode()
     #print()
     for completion in data:
@@ -79,8 +93,8 @@ def unflattenPrefixNode(data):
     return prefixNode
 
 
-def choose_token(prefixNode):
-    result = -1
+def choose_token(prefixNode:PrefixNode) -> Token:
+    result:Token = Token(-1)
     total = prefixNode.occurance_count;
     probabliities = prefixNode.probabilities
 
@@ -98,7 +112,7 @@ def choose_token(prefixNode):
 
 
 
-def debug_print_weights(transitions, so_far=([],[])):
+def debug_print_weights(transitions:PrefixNode) -> None:
     flattened = flattenPrefixNode(transitions)
     for node in flattened:
         text = f"{repr(node['comment'])} ({node['prefix']}):\n    ["
@@ -109,7 +123,13 @@ def debug_print_weights(transitions, so_far=([],[])):
         print("".join([text, ", ".join(parts), "]"]))
 
 
-def markov_generate_token(transitions, state, decay):
+class GeneratedTokenInfo(TypedDict):
+    token:Token
+    decay:int
+    depth:int
+    matched:list[Token]
+
+def markov_generate_token(transitions:PrefixNode, state:list[Token], decay:int) -> GeneratedTokenInfo:
     state_index = len(state) - 1
 
     parent = transitions
@@ -132,17 +152,17 @@ def markov_generate_token(transitions, state, decay):
     token = choose_token(parent)
     prefix.reverse()
     return {
-        "token":token,
+        "token": token,
         "decay": decayed,
         "depth": depth,
         "matched": prefix
     }
 
-def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
+def markov_generate(generator:TokenGenerator, *, max_generated_tokens:int=100, terminator:Token|None=None) -> list[Token]:
     if terminator == None:
         terminator = generator.delimiter
-    output = []
-    debug_info = []
+    output:list[Token] = []
+    debug_info:list[GeneratedTokenInfo] = []
     token = 0
     count = 0
     prefixes = generator.prefix.copy()
@@ -165,7 +185,7 @@ def markov_generate(generator, *, max_generated_tokens=100, terminator=None):
     return output
 
 
-def append_message(generator, message, generated=False):
+def append_message(generator:TokenGenerator, message:Message, generated:bool=False) -> None:
     generator.modified = True
     start_from = len(generator.prefix) - 1
     generator.prefix.extend(message.tokens)
@@ -177,9 +197,9 @@ def append_message(generator, message, generated=False):
 
 
 
-def calculate_transitions(generator, tokens, *,
-                          null_token=0, enable_debug_output=False,
-                          start_from=0):
+def calculate_transitions(generator:TokenGenerator, tokens:list[Token], *,
+                          null_token:Token=Token(0), enable_debug_output:bool=False,
+                          start_from:int=0) -> None:
     generator.modified |= len(tokens) > 0
     transitions = generator.transitions
 
@@ -207,7 +227,7 @@ def calculate_transitions(generator, tokens, *,
     return
 
 
-def tokens_to_string(tokens):
+def tokens_to_string(tokens:list[Token]) -> str:
     # todo For now tokens are just ord(char)
     char_list = []
     for token in tokens:
@@ -216,19 +236,25 @@ def tokens_to_string(tokens):
     return "".join(char_list)
 
 
-def string_to_tokens(string):
+def string_to_tokens(string:str) -> list[Token]:
     tokens = []
     for character in string:
-        tokens.append(ord(character))
+        tokens.append(Token(ord(character)))
     return tokens
 
 
 example_generator = TokenGenerator("Example generator")
 example_generator.transitions = PrefixNode(
     prefixes = {
-        1:  PrefixNode(probabilities={1: 10, 2: 3, 3: 5, 4: 1}),
-        2:  PrefixNode(probabilities={1: 7, 2: 5, 3: 1, 4: 1}),
-        3:  PrefixNode(probabilities={1: 3, 2: 3, 3: 9, 4: 1, 5: 1}),
-        4:  PrefixNode(probabilities={})   # Terminate
+        Token(1):  PrefixNode(probabilities={
+            Token(1): 10, Token(2): 3, Token(3): 5, Token(4): 1
+        }),
+        Token(2):  PrefixNode(probabilities={
+            Token(1): 7, Token(2): 5, Token(3): 1, Token(4): 1
+        }),
+        Token(3):  PrefixNode(probabilities={
+            Token(1): 3, Token(2): 3, Token(3): 9, Token(4): 1, Token(5): 1
+        }),
+        Token(4):  PrefixNode(probabilities={})   # Terminate
     },
-    probabilities={1: 1, 2: 1, 3: 1})
+    probabilities={Token(1): 1, Token(2): 1, Token(3): 1})

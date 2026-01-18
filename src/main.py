@@ -6,6 +6,7 @@ import traceback
 import chatbot
 import commands
 import savefile
+from chatbot import TokenGenerator
 
 try:
     import readline
@@ -13,17 +14,17 @@ except ModuleNotFoundError:
     print("Failed to import readline. Some line editing features may not be available.")
     readlinee = None
 
-def init_readline():
+def init_readline() -> None:
     if readline != None:
         readline.set_auto_history(False)
 
-def read_file(filename):
+def read_file(filename:str) -> str:
     with open(filename) as file:
         text = file.read()
     return text
 
 
-def usage(program_name, arg=None):
+def usage(program_name:str, arg:str|None = None) -> None:
     if arg != None:
         print(f"Unrecognized argument: '{arg}'")
 
@@ -32,10 +33,10 @@ def usage(program_name, arg=None):
 
 
 class Context:
-    def __init__(self, generator):
+    def __init__(self, generator:TokenGenerator):
         self.generator = generator
 
-def main():
+def main() -> None:
     #print(sys.argv)
     loop_count = 0
     enable_debug_output = False;
@@ -114,8 +115,8 @@ def main():
         aborted_filename = "data/aborted.json"
         recovered = False
         if os.path.exists(aborted_filename):
-            i = input(f"{aborted_filename} exists. [R]ecover / [D]elete / [Q]uit: ")
-            match i.lower():
+            got = input(f"{aborted_filename} exists. [R]ecover / [D]elete / [Q]uit: ")
+            match got.lower():
                 case "r":
                     if filename != None:
                         print(f"Ignoring specified initialization file '{filename}'")
@@ -127,15 +128,15 @@ def main():
                         for message in context.generator.chatHistory[-5:]:
                             print(f"{message.user}> {chatbot.tokens_to_string(message.tokens)}")
                         while True:
-                            i = input("Save recovered data now? [y/n] ")
-                            match i.lower():
+                            got = input("Save recovered data now? [y/n] ")
+                            match got.lower():
                                 case 'y':
                                     if savefile.saveChat(context):
                                         break
                                 case 'n':
                                     break
                                 case _:
-                                    print(f"Unrecognized option: {i}")
+                                    print(f"Unrecognized option: {got}")
                         os.remove(aborted_filename)
                 case "d":
                     os.remove(aborted_filename)
@@ -147,8 +148,8 @@ def main():
             if filename != None:
                 while True:
                     print(f"Initialization file '{filename}' specified but chat already exists")
-                    i = input("[R]estart chat or [C]ontinue without initialization? ")
-                    match i.lower():
+                    got = input("[R]estart chat or [C]ontinue without initialization? ")
+                    match got.lower():
                         case 'r':
                             os.remove(savefile.defaultChatFile)
                             load_chat = False
@@ -157,12 +158,12 @@ def main():
                             filename = None
                             break
                         case _:
-                            print(f"Unrecognized option: {i}")
+                            print(f"Unrecognized option: {got}")
 
             if load_chat and not savefile.loadChat(context, savefile.defaultChatFile):
                 while True:
-                    i = input("Restart chat? [y/n] ")
-                    match i.lower():
+                    got = input("Restart chat? [y/n] ")
+                    match got.lower():
                         case 'y':
                             os.remove(savefile.defaultChatFile)
                             running = True
@@ -172,7 +173,7 @@ def main():
                             running = False
                             break
                         case _:
-                            print(f"Unrecognized option: {i}")
+                            print(f"Unrecognized option: {got}")
 
 
         try:
