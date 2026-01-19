@@ -189,7 +189,8 @@ def main() -> None:
                     if enable_debug_output == True:
                         print(f"Got command: {user_input}")
                     should_generate_message = False
-                    command_parts = user_input.strip().split(maxsplit = 1)
+
+                    command_parts = [*user_input.strip().split(maxsplit = 1), ""][0:2]
                     user_input = None
 
                     if enable_debug_output:
@@ -199,7 +200,7 @@ def main() -> None:
                     action = commands.CommandAction.NOP
                     result = None
                     if command_parts[0] in commands.commands:
-                        action, result = commands.commands[command_parts[0]].func(command_parts[1:], context)
+                        action, result = commands.commands[command_parts[0]].func(command_parts[1], context)
                     else:
                         print(f"Unknown command: {command_parts[0]}")
 
